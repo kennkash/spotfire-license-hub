@@ -70,5 +70,42 @@ def get_license_reduction(cost_center_name: str = Query(...)) -> List[Dict[str, 
     # filter
     filtered = df[df["cost_center_name"].astype(str).str.strip() == cost_center_name].copy()
 
-    # return list of dicts
-    return filtered.fillna("").to_dict(orient="records")
+    # Make sure numeric comparisons work (CSV can parse as strings)
+    if "ANALYST_ACTIONS_PER_DAY" in filtered.columns:
+        filtered["ANALYST_ACTIONS_PER_DAY"] = pd.to_numeric(
+            filtered["ANALYST_ACTIONS_PER_DAY"], errors="coerce"
+        ).fillna(0)
+
+    # Compute recommendedAction
+    filtered["recommendedAction"] = filtered["ANALYST_ACTIONS_PER_DAY"].apply(
+        lambda x: "Analyst" if x >= 1 else "Consumer"
+    )
+
+    # Build a clean response that matches the React UI
+    def row_to_ui(r: pd.Series) -> Dict[str, Any]:
+        return {
+            # UI columns
+            "name": "",  # you don't have full name in CSV; keep empty for now
+            "user": r.get("USER_NAME", ""),
+            "email": r.get("USER_EMAIL", ""),
+            "costCenterName": r.get("cost_center_name", ""),
+            "departmentName": r.get("dept_name", ""),
+            "title": r.get("title", ""),
+            "recommendedAction": r.get("recommendedAction", ""),
+
+            # Optional extras (handy later)
+            "lastActivity": r.get("LAST_ACTIVITY", ""),
+            "analystActionsPerDay": float(r.get("ANALYST_ACTIONS_PER_DAY", 0) or 0),
+            "analystFunctions": int(r.get("ANALYST_FUNCTIONS", 0) or 0),
+            "nonAnalystFunctions": int(r.get("NON_ANALYST_FUNCTIONS", 0) or 0),
+            "activeDays": int(r.get("ACTIVE_DAYS", 0) or 0),
+            "titleCategory": r.get("TITLE_CATEGORY", ""),
+            "analystPct": r.get("ANALYST_PCT", ""),
+            "analystUserFlag": bool(r.get("ANALYST_USER_FLAG", False)),
+            "analystThreshold": r.get("ANALYST_THRESHOLD", ""),
+        }
+
+    # Convert to records
+    records = [row_to_ui(row) for _, row in filtered.iterrows()]
+    return records
+

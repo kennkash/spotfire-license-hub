@@ -8,19 +8,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 
 async function fetchCostCenters(): Promise<string[]> {
-  const res = await fetch("/api/cost-centers", { cache: "no-store" })
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL
+  if (!base) throw new Error("NEXT_PUBLIC_API_BASE_URL is not set")
+
+  const res = await fetch(`${base}/v0/cost-centers`, {
+    credentials: "include",
+    headers: { "Cache-Control": "no-store" },
+  })
+
   if (!res.ok) throw new Error(`API error ${res.status}`)
   return res.json()
 }
 
+
 async function fetchRows(costCenter: string): Promise<any[]> {
-  const res = await fetch(
-    `/api/license-reduction-csv?cost_center_name=${encodeURIComponent(costCenter)}`,
-    { cache: "no-store" }
-  )
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL
+  if (!base) throw new Error("NEXT_PUBLIC_API_BASE_URL is not set")
+
+  const url = new URL(`${base}/v0/license-reduction`)
+  url.searchParams.set("cost_center_name", costCenter)
+
+  const res = await fetch(url.toString(), {
+    credentials: "include",
+    headers: { "Cache-Control": "no-store" },
+  })
+
   if (!res.ok) throw new Error(`API error ${res.status}`)
   return res.json()
 }
+
 
 export default function LicenseReductionView() {
   const [costCenter, setCostCenter] = React.useState("")
@@ -31,9 +47,9 @@ export default function LicenseReductionView() {
   })
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["license-reduction-csv", costCenter],
-    queryFn: () => fetchRows(costCenter),
-    enabled: !!costCenter,
+  queryKey: ["license-reduction", costCenter],
+  queryFn: () => fetchRows(costCenter),
+  enabled: !!costCenter,
   })
 
   const analystCount = React.useMemo(

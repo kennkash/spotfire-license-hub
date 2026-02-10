@@ -128,7 +128,7 @@ export default function LicenseReductionView() {
     })
   }, [defaultOrderedRows, search])
 
-    const finalRows = React.useMemo<LicenseRow[]>(() => {
+  const finalRows = React.useMemo<LicenseRow[]>(() => {
     // If no explicit sort requested, keep your default ordering
     if (!sortKey) return filteredRows
 
@@ -148,13 +148,6 @@ export default function LicenseReductionView() {
     return filteredRows.slice().sort(compare)
   }, [filteredRows, sortKey, sortDir])
 
-    // Keep Analysts first always; sort within groups
-    const analysts = filteredRows.filter((r) => r.recommendedAction === "Analyst").slice().sort(compare)
-    const consumers = filteredRows.filter((r) => r.recommendedAction !== "Analyst").slice().sort(compare)
-
-    // If they sort by recommendedAction itself, still keep Analysts first but the compare will be redundant.
-    return [...analysts, ...consumers]
-  }, [filteredRows, sortKey, sortDir])
 
   const onSort = (key: SortKey) => {
     if (sortKey !== key) {
@@ -203,44 +196,43 @@ export default function LicenseReductionView() {
           </div>
 
           {/* Controls */}
-         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-  <Select value={costCenter} onValueChange={setCostCenter}>
-    <SelectTrigger className="w-[280px]">
-      <SelectValue placeholder="Select a cost center" />
-    </SelectTrigger>
-    <SelectContent>
-      {costCenters.map((cc) => (
-        <SelectItem key={cc} value={cc}>
-          {cc}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Select value={costCenter} onValueChange={setCostCenter}>
+              <SelectTrigger className="w-[280px]">
+                <SelectValue placeholder="Select a cost center" />
+              </SelectTrigger>
+              <SelectContent>
+                {costCenters.map((cc) => (
+                  <SelectItem key={cc} value={cc}>
+                    {cc}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-  <div className="flex items-center gap-2">
-    <Input
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      placeholder="Search name, email, or username…"
-      className="sm:w-[340px]"
-      disabled={!costCenter || isLoading}
-    />
+            <div className="flex items-center gap-2">
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name, email, or username…"
+                className="sm:w-[340px]"
+                disabled={!costCenter || isLoading}
+              />
 
-    {sortKey && (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          setSortKey(null)
-          setSortDir("asc")
-        }}
-      >
-        Reset
-      </Button>
-    )}
-  </div>
-</div>
-
+              {sortKey && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSortKey(null)
+                    setSortDir("asc")
+                  }}
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
+          </div>
           {!!search.trim() && (
             <div className="mt-2 text-sm text-muted-foreground">
               Showing {finalRows.length} of {defaultOrderedRows.length}

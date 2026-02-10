@@ -2,21 +2,12 @@
 
 import * as React from "react"
 import { useQuery } from "@tanstack/react-query"
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  SortingState,
-  useReactTable,
-} from "@tanstack/react-table"
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 import { getApiBase } from "@/lib/apiBase"
 
@@ -31,18 +22,28 @@ type LicenseRow = {
   recommendedAction: "Analyst" | "Consumer" | string
 }
 
+type SortKey = keyof Pick<
+  LicenseRow,
+  "name" | "user" | "email" | "costCenterName" | "departmentName" | "title" | "statusName" | "recommendedAction"
+>
+
+type SortDir = "asc" | "desc"
+
 async function fetchCostCenters(): Promise<string[]> {
   const base = getApiBase()
+
   const res = await fetch(`${base}/v0/cost-centers`, {
     credentials: "include",
     headers: { "Cache-Control": "no-store" },
   })
+
   if (!res.ok) throw new Error(`API error ${res.status}`)
   return res.json()
 }
 
 async function fetchRows(costCenter: string): Promise<LicenseRow[]> {
   const base = getApiBase()
+
   const url = new URL(`${base}/v0/license-reduction`, window.location.origin)
   url.searchParams.set("cost_center_name", costCenter)
 
@@ -50,35 +51,21 @@ async function fetchRows(costCenter: string): Promise<LicenseRow[]> {
     credentials: "include",
     headers: { "Cache-Control": "no-store" },
   })
+
   if (!res.ok) throw new Error(`API error ${res.status}`)
   return res.json()
 }
 
-function SortHeader({
-  title,
-  column,
-}: {
-  title: string
-  column: any
-}) {
-  const s = column.getIsSorted() as false | "asc" | "desc"
-  return (
-    <Button
-      variant="ghost"
-      className="px-0 h-auto font-medium"
-      onClick={() => column.toggleSorting(s === "asc")}
-    >
-      {title}
-      <span className="ml-1 text-muted-foreground">
-        {s === "asc" ? "▲" : s === "desc" ? "▼" : ""}
-      </span>
-    </Button>
-  )
+function sortIcon(active: boolean, dir: SortDir) {
+  if (!active) return ""
+  return dir === "asc" ? "▲" : "▼"
 }
 
 export default function LicenseReductionView() {
   const [costCenter, setCostCenter] = React.useState("")
   const [search, setSearch] = React.useState("")
+  const [sortKey, setSortKey] = React.useState<SortKey | null>(null)
+  const [sortDir, setSortDir] = React.useState<SortDir>("asc")
 
   const { data: costCenters = [] } = useQuery({
     queryKey: ["cost-centers"],
@@ -95,9 +82,11 @@ export default function LicenseReductionView() {
     retry: 1,
   })
 
-  // clear search when cost center changes
+  // Reset search + sorting when switching cost centers (optional, but keeps things sane)
   React.useEffect(() => {
     setSearch("")
+    setSortKey(null)
+    setSortDir("asc")
   }, [costCenter])
 
   const analystCount = React.useMemo(
@@ -110,8 +99,7 @@ export default function LicenseReductionView() {
     [rows]
   )
 
-  // Keep your existing default order:
-  // Analysts first, then by username (and stable within that)
+  // Default ordering: Analysts first, then username
   const defaultOrderedRows = React.useMemo<LicenseRow[]>(() => {
     if (!rows.length) return []
 
@@ -119,7 +107,7 @@ export default function LicenseReductionView() {
     const consumers = rows.filter((r) => r.recommendedAction !== "Analyst")
 
     const byUsername = (a: LicenseRow, b: LicenseRow) =>
-      String(a.user ?? "").localeCompare(String(b.user ?? ""))
+      String(a.user ?? "").localeCompare(String(b.user ?? ""), undefined, { sensitivity: "base" })
 
     analysts.sort(byUsername)
     consumers.sort(byUsername)
@@ -127,7 +115,7 @@ export default function LicenseReductionView() {
     return [...analysts, ...consumers]
   }, [rows])
 
-  // Search filters the already-default-ordered list
+  // Search filter (applies on top of default ordering)
   const filteredRows = React.useMemo<LicenseRow[]>(() => {
     const q = search.trim().toLowerCase()
     if (!q) return defaultOrderedRows
@@ -140,84 +128,53 @@ export default function LicenseReductionView() {
     })
   }, [defaultOrderedRows, search])
 
-  // Sorting state only applies AFTER your default ordering + search.
-  // If no column sorting is selected, you still get your default order.
-  const [sorting, setSorting] = React.useState<SortingState>([])
+  // Sorting (lightweight, no TanStack Table)
+  const finalRows = React.useMemo<LicenseRow[]>(() => {
+    // If no explicit sort requested, keep your default ordering
+    if (!sortKey) return filteredRows
 
-  const columns = React.useMemo<ColumnDef<LicenseRow>[]>(
-    () => [
-      {
-        accessorKey: "name",
-        header: ({ column }) => <SortHeader title="Full Name" column={column} />,
-        cell: ({ row }) => {
-          const name = row.original.name
-          return name === "Possibly Terminated" ? (
-            <span className="text-red-500 italic">{name}</span>
-          ) : (
-            <span>{name}</span>
-          )
-        },
-      },
-      {
-        accessorKey: "user",
-        header: ({ column }) => <SortHeader title="Username" column={column} />,
-      },
-      {
-        accessorKey: "email",
-        header: ({ column }) => <SortHeader title="Email" column={column} />,
-      },
-      {
-        accessorKey: "costCenterName",
-        header: ({ column }) => <SortHeader title="Cost Center" column={column} />,
-      },
-      {
-        accessorKey: "departmentName",
-        header: ({ column }) => <SortHeader title="Department" column={column} />,
-      },
-      {
-        accessorKey: "title",
-        header: ({ column }) => <SortHeader title="Title" column={column} />,
-      },
-      {
-        accessorKey: "statusName",
-        header: ({ column }) => <SortHeader title="Employee Status" column={column} />,
-        cell: ({ row }) => {
-          const s = row.original.statusName
-          return s === "Unknown" || s === "Terminated" ? (
-            <Badge variant="secondary" className="bg-red-100 text-red-800">
-              {s}
-            </Badge>
-          ) : (
-            <span>{s}</span>
-          )
-        },
-      },
-      {
-        accessorKey: "recommendedAction",
-        header: ({ column }) => <SortHeader title="Recommended License" column={column} />,
-        cell: ({ row }) => {
-          const rec = row.original.recommendedAction
-          return rec === "Analyst" ? (
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              {rec}
-            </Badge>
-          ) : (
-            <span>{rec}</span>
-          )
-        },
-      },
-    ],
-    []
-  )
+    const dir = sortDir === "asc" ? 1 : -1
 
-  const table = useReactTable({
-    data: filteredRows,
-    columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  })
+    const compare = (a: LicenseRow, b: LicenseRow) => {
+      const av = a[sortKey]
+      const bv = b[sortKey]
+
+      // Prefer string compare (your fields are mostly strings)
+      const as = String(av ?? "")
+      const bs = String(bv ?? "")
+
+      return as.localeCompare(bs, undefined, { sensitivity: "base" }) * dir
+    }
+
+    // Keep Analysts first always; sort within groups
+    const analysts = filteredRows.filter((r) => r.recommendedAction === "Analyst").slice().sort(compare)
+    const consumers = filteredRows.filter((r) => r.recommendedAction !== "Analyst").slice().sort(compare)
+
+    // If they sort by recommendedAction itself, still keep Analysts first but the compare will be redundant.
+    return [...analysts, ...consumers]
+  }, [filteredRows, sortKey, sortDir])
+
+  const onSort = (key: SortKey) => {
+    if (sortKey !== key) {
+      setSortKey(key)
+      setSortDir("asc")
+      return
+    }
+    // toggle direction
+    setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+  }
+
+  const SortableHead = ({ label, k }: { label: string; k: SortKey }) => {
+    const active = sortKey === k
+    return (
+      <TableHead>
+        <Button variant="ghost" className="px-0 h-auto font-medium" onClick={() => onSort(k)}>
+          {label}
+          <span className="ml-2 text-muted-foreground">{sortIcon(active, sortDir)}</span>
+        </Button>
+      </TableHead>
+    )
+  }
 
   return (
     <div className="w-full px-4">
@@ -269,7 +226,7 @@ export default function LicenseReductionView() {
 
           {!!search.trim() && (
             <div className="mt-2 text-sm text-muted-foreground">
-              Showing {filteredRows.length} of {defaultOrderedRows.length}
+              Showing {finalRows.length} of {defaultOrderedRows.length}
             </div>
           )}
 
@@ -311,43 +268,65 @@ export default function LicenseReductionView() {
           {isLoading ? (
             <div className="text-center py-8">Loading…</div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((hg) => (
-                    <TableRow key={hg.id}>
-                      {hg.headers.map((header) => (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(header.column.columnDef.header, header.getContext())}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortableHead label="Full Name" k="name" />
+                  <SortableHead label="Username" k="user" />
+                  <SortableHead label="Email" k="email" />
+                  <SortableHead label="Cost Center" k="costCenterName" />
+                  <SortableHead label="Department" k="departmentName" />
+                  <SortableHead label="Title" k="title" />
+                  <SortableHead label="Employee Status" k="statusName" />
+                  <SortableHead label="Recommended License" k="recommendedAction" />
+                </TableRow>
+              </TableHeader>
 
-                <TableBody>
-                  {table.getRowModel().rows.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={columns.length} className="text-center py-4">
-                        No matching results
+              <TableBody>
+                {finalRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-4">
+                      No matching results
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  finalRows.map((r, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>
+                        {r.name === "Possibly Terminated" ? (
+                          <span className="text-red-500 italic">{r.name}</span>
+                        ) : (
+                          <span>{r.name}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{r.user}</TableCell>
+                      <TableCell>{r.email}</TableCell>
+                      <TableCell>{r.costCenterName}</TableCell>
+                      <TableCell>{r.departmentName}</TableCell>
+                      <TableCell>{r.title}</TableCell>
+                      <TableCell>
+                        {r.statusName === "Unknown" || r.statusName === "Terminated" ? (
+                          <Badge variant="secondary" className="bg-red-100 text-red-800">
+                            {r.statusName}
+                          </Badge>
+                        ) : (
+                          <span>{r.statusName}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {r.recommendedAction === "Analyst" ? (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                            {r.recommendedAction}
+                          </Badge>
+                        ) : (
+                          <span>{r.recommendedAction}</span>
+                        )}
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

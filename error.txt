@@ -1,0 +1,66 @@
+now what is this error?? :
+
+#14 [build 6/6] RUN { npm install 2>&1 || echo "npm install failed. ignoring and moving on to npm build"; } &&     npm run build 2>&1 &&     { mv dist/ /tmp/dist || mv build/ /tmp/dist; }
+#14 3.146 npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+#14 11.38 
+#14 11.38 added 701 packages in 11s
+#14 11.57 
+#14 11.57 > spotfire-license-hub@0.1.0 build
+#14 11.57 > next build
+#14 11.57 
+#14 12.61 Attention: Next.js now collects completely anonymous telemetry regarding usage.
+#14 12.61 This information is used to shape Next.js' roadmap and prioritize features.
+#14 12.61 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+#14 12.61 https://nextjs.org/telemetry
+#14 12.61 
+#14 12.61 ▲ Next.js 16.1.6 (Turbopack)
+#14 12.61 
+#14 12.71   Creating an optimized production build ...
+#14 16.71 ✓ Compiled successfully in 3.4s
+#14 16.71   Running TypeScript ...
+#14 20.39   Collecting page data using 3 workers ...
+#14 20.91   Generating static pages using 3 workers (0/8) ...
+#14 21.02   Generating static pages using 3 workers (2/8) 
+#14 21.28   Generating static pages using 3 workers (4/8) 
+#14 21.28   Generating static pages using 3 workers (6/8) 
+#14 21.28 ✓ Generating static pages using 3 workers (8/8) in 374.8ms
+#14 21.29   Finalizing page optimization ...
+#14 21.30 
+#14 21.30 Route (app)
+#14 21.30 ┌ ○ /
+#14 21.30 ├ ○ /_not-found
+#14 21.30 ├ ƒ /api/cost-centers
+#14 21.30 ├ ƒ /api/license-reduction
+#14 21.30 ├ ƒ /api/license-reduction-csv
+#14 21.30 └ ○ /license-reduction
+#14 21.30 
+#14 21.30 
+#14 21.30 ○  (Static)   prerendered as static content
+#14 21.30 ƒ  (Dynamic)  server-rendered on demand
+#14 21.30 
+#14 43.27 mv: can't rename 'dist/': No such file or directory
+#14 43.27 mv: can't rename 'build/': No such file or directory
+#14 ERROR: process "/bin/sh -c { npm install 2>&1 || echo \"npm install failed. ignoring and moving on to npm build\"; } &&     npm run build 2>&1 &&     { mv dist/ /tmp/dist || mv build/ /tmp/dist; }" did not complete successfully: exit code: 1
+------
+ > [build 6/6] RUN { npm install 2>&1 || echo "npm install failed. ignoring and moving on to npm build"; } &&     npm run build 2>&1 &&     { mv dist/ /tmp/dist || mv build/ /tmp/dist; }:
+21.30 ├ ƒ /api/license-reduction
+21.30 ├ ƒ /api/license-reduction-csv
+21.30 └ ○ /license-reduction
+21.30 
+21.30 
+21.30 ○  (Static)   prerendered as static content
+21.30 ƒ  (Dynamic)  server-rendered on demand
+21.30 
+43.27 mv: can't rename 'dist/': No such file or directory
+43.27 mv: can't rename 'build/': No such file or directory
+------
+Dockerfile:22
+--------------------
+  21 |     
+  22 | >>> RUN { npm install 2>&1 || echo "npm install failed. ignoring and moving on to npm build"; } && \
+  23 | >>>     npm run build 2>&1 && \
+  24 | >>>     # dist/ for Vue, build/ for React
+  25 | >>>     { mv dist/ /tmp/dist || mv build/ /tmp/dist; }
+  26 |     
+--------------------
+ERROR: failed to solve: process "/bin/sh -c { npm install 2>&1 || echo \"npm install failed. ignoring and moving on to npm build\"; } &&     npm run build 2>&1 &&     { mv dist/ /tmp/dist || mv build/ /tmp/dist; }" did not complete successfully: exit code: 1

@@ -255,3 +255,29 @@ async def get_license_reduction(
         }
 
     return [row_to_ui(row) for _, row in filtered.iterrows()]
+    
+    
+    @router.get("/license-reduction/missing-names", response_model=List[Dict[str, Any]])
+async def get_missing_full_names() -> List[Dict[str, Any]]:
+    """
+    Returns all rows that still do not have FULL_NAME after
+    primary merge, fallback merge, and partner repair.
+    """
+    df = await get_cached_final_df()
+
+    missing = df[df["FULL_NAME"].isna()].copy()
+
+    def safe(v):
+        return None if pd.isna(v) else v
+
+    return [
+        {
+            "user": safe(r.get("USER_NAME")),
+            "email": safe(r.get("USER_EMAIL")),
+            "altEmail": safe(r.get("USER_EMAIL_ALT")),
+            "costCenterName": safe(r.get("cost_center_name")),
+            "departmentName": safe(r.get("dept_name")),
+            "analystActionsPerDay": safe(r.get("ANALYST_ACTIONS_PER_DAY")),
+        }
+        for _, r in missing.iterrows()
+    ]

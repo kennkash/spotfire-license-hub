@@ -1,3 +1,17 @@
+    # ------------------------------------------------------------
+    # Final fallback: any rows STILL missing FULL_NAME
+    # are likely terminated / not found in HR datasets.
+    # ------------------------------------------------------------
+    final_missing = merged["FULL_NAME"].isna()
+
+    if final_missing.any():
+        merged.loc[final_missing, "FULL_NAME"] = "Possibly Terminated"
+
+        # Optional: also set STATUS_NAME to something meaningful
+        merged.loc[final_missing, "STATUS_NAME"] = (
+            merged.loc[final_missing, "STATUS_NAME"].fillna("Unknown")
+        )
+
 from fastapi import APIRouter, Query, HTTPException
 from typing import List, Dict, Any, Optional
 import pandas as pd

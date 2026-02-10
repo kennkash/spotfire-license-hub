@@ -1,88 +1,196 @@
 from fastapi import APIRouter, Query, HTTPException
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import pandas as pd
-from bigdataloader2 import *
 from io import BytesIO
+
+from bigdataloader2 import getData
 from s2cloudapi import s3api as s3
+
 from aiocache import cached
 from aiocache.serializers import PickleSerializer
 
 router = APIRouter()
 
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
+CACHE_TTL_SECONDS = 86400  # 24 hours
+S3_BUCKET = "spotfire-admin"
+S3_KEY = "analyst-functions-users.csv"
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-# ----------------------------------------------------------------------
-# Fetch the secondary employee lookup (exact same columns as the
-# primary lookup, but a different data source)
-# ----------------------------------------------------------------------
-def _get_fallback_employee_data() -> pd.DataFrame:
-    """
-    Returns a DataFrame with columns ['full_name', 'smtp'] that will be used
-    when the primary merge could not resolve a FULL_NAME.
-    """
-    params = {"data_type": "dss_employee_ghr", "MLR": "L"}
-    custom_columns = ["full_name", "smtp"]
-    return getData(params=params, custom_columns=custom_columns)
 
-
-def read_json_from_bucket(bucket: str, key: str) -> dict:
-    """Read a .json file from an s3 bucket as a dictionary"""
+def read_csv_from_bucket(bucket: str, key: str) -> pd.DataFrame:
+    """
+    Read a CSV object from S3 and return a pandas DataFrame.
+    """
     boto_object = s3.get_object(bucket=bucket, key=key)
     csv_bytes = boto_object["Body"].read()
     df = pd.read_csv(BytesIO(csv_bytes))
     return df
 
 
-def getCreds() -> pd.DataFrame:
-    bucket = "spotfire-admin"
-    key = "analyst-functions-users.csv"
-    license_data = read_json_from_bucket(bucket=bucket, key=key)
-    return license_data
+def get_license_df() -> pd.DataFrame:
+    """
+    Pull the license reduction dataset from S3.
+    """
+    return read_csv_from_bucket(bucket=S3_BUCKET, key=S3_KEY)
 
 
-async def get_cached_data():
-    # This will automatically cache the result for 24 hours
-    @cached(ttl=86400, serializer=PickleSerializer())
-    async def load_data():
-        df = getCreds()
-        df.columns = [c.strip() for c in df.columns]
+def _get_primary_employee_data() -> pd.DataFrame:
+    """
+    Primary employee lookup (full_name, smtp, status_name).
+    """
+    params = {"data_type": "pageradm_employee_ghr", "MLR": "L"}
+    custom_columns = ["full_name", "smtp", "status_name"]
+    return getData(params=params, custom_columns=custom_columns)
 
-        df = df.where(df.notna(), None)
 
-        if "ANALYST_ACTIONS_PER_DAY" in df.columns:
-            df["ANALYST_ACTIONS_PER_DAY"] = pd.to_numeric(
-                df["ANALYST_ACTIONS_PER_DAY"], errors="coerce"
-            ).fillna(0)
+def _get_fallback_employee_data() -> pd.DataFrame:
+    """
+    Secondary/fallback employee lookup (full_name, smtp, status_name).
+    Used only when the primary merge fails to resolve FULL_NAME.
+    """
+    params = {"data_type": "dss_employee_ghr", "MLR": "L"}
+    custom_columns = ["full_name", "smtp", "status_name"]
+    return getData(params=params, custom_columns=custom_columns)
 
-        df["recommendedAction"] = df["ANALYST_ACTIONS_PER_DAY"].apply(
-            lambda x: "Analyst" if x >= 1 else "Consumer"
+
+def _partner_to_samsung_email(email: Optional[str]) -> Optional[str]:
+    """
+    If a license row uses a contractor/partner email but the employee tables
+    now contain @samsung.com, we try an alternate email.
+
+    Example:
+      someone@partner.samsung.com -> someone@samsung.com
+    """
+    if not email:
+        return email
+    e = str(email).strip()
+    if "@partner.samsung" in e:
+        left = e.split("@", 1)[0]
+        return f"{left}@samsung.com"
+    return e
+
+
+# ---------------------------------------------------------------------------
+# Cached data builders
+# ---------------------------------------------------------------------------
+
+
+@cached(ttl=CACHE_TTL_SECONDS, serializer=PickleSerializer())
+async def get_cached_final_df() -> pd.DataFrame:
+    """
+    Build the fully-enriched dataset once (per TTL) and cache it:
+
+    1) Load license CSV from S3
+    2) Compute recommendedAction
+    3) Primary merge on USER_EMAIL -> smtp to get FULL_NAME + STATUS_NAME
+    4) Fallback merge for remaining missing FULL_NAME
+    5) Partner email repair (partner -> samsung) for still-missing
+    """
+    # 1) Load license activity CSV
+    df = get_license_df()
+    df.columns = [c.strip() for c in df.columns]
+    df = df.where(df.notna(), None)
+
+    # Numeric conversion (csv sometimes produces strings)
+    if "ANALYST_ACTIONS_PER_DAY" in df.columns:
+        df["ANALYST_ACTIONS_PER_DAY"] = pd.to_numeric(
+            df["ANALYST_ACTIONS_PER_DAY"], errors="coerce"
+        ).fillna(0)
+
+    # Compute recommendedAction once
+    df["recommendedAction"] = df["ANALYST_ACTIONS_PER_DAY"].apply(
+        lambda x: "Analyst" if float(x) >= 1 else "Consumer"
+    )
+
+    # Partner repair candidate email (used later if needed)
+    df["USER_EMAIL_ALT"] = df["USER_EMAIL"].apply(_partner_to_samsung_email)
+
+    # 2) Primary employee lookup
+    user_data = _get_primary_employee_data().copy()
+    user_data["smtp"] = user_data["smtp"].astype(str).str.strip()
+
+    # 3) Primary merge on email
+    merged = (
+        df.merge(
+            user_data,
+            how="left",
+            left_on="USER_EMAIL",
+            right_on="smtp",
+            suffixes=("", "_emp"),
+        )
+        .drop(columns=["smtp"], errors="ignore")
+        .rename(columns={"full_name": "FULL_NAME", "status_name": "STATUS_NAME"})
+    )
+
+    # 4) Fallback merge ONLY where FULL_NAME is missing
+    missing_mask = merged["FULL_NAME"].isna()
+    if missing_mask.any():
+        fallback_emp = _get_fallback_employee_data().copy()
+        fallback_emp["smtp"] = fallback_emp["smtp"].astype(str).str.strip()
+
+        to_fix = merged.loc[missing_mask].merge(
+            fallback_emp,
+            how="left",
+            left_on="USER_EMAIL",
+            right_on="smtp",
+            suffixes=("", "_fb"),
         )
 
-        params = {"data_type": "pageradm_employee_ghr", "MLR": "L"}
-        custom_columns = ["full_name", "smtp"]
-        user_data = getData(params=params, custom_columns=custom_columns)
+        # Fill missing FULL_NAME/STATUS_NAME from fallback merge
+        name_map = to_fix.set_index("USER_EMAIL")["full_name"].to_dict()
+        status_map = to_fix.set_index("USER_EMAIL")["status_name"].to_dict()
 
-        final_df = (
-            df.merge(user_data, how="left", left_on="USER_EMAIL", right_on="smtp")
-            .drop(columns="smtp")
-            .rename(columns={"full_name": "FULL_NAME"})
+        merged.loc[missing_mask, "FULL_NAME"] = merged.loc[
+            missing_mask, "USER_EMAIL"
+        ].map(name_map)
+        merged.loc[missing_mask, "STATUS_NAME"] = merged.loc[
+            missing_mask, "USER_EMAIL"
+        ].map(status_map)
+
+    # 5) Partner email repair (still missing + partner email)
+    still_missing = merged["FULL_NAME"].isna()
+    partner_missing = still_missing & merged["USER_EMAIL"].astype(str).str.contains(
+        "@partner.samsung", na=False
+    )
+
+    if partner_missing.any():
+        to_fix2 = merged.loc[partner_missing].merge(
+            user_data,
+            how="left",
+            left_on="USER_EMAIL_ALT",
+            right_on="smtp",
+            suffixes=("", "_alt"),
         )
 
-        return final_df
+        name_map2 = to_fix2.set_index("USER_EMAIL")["full_name"].to_dict()
+        status_map2 = to_fix2.set_index("USER_EMAIL")["status_name"].to_dict()
 
-    return await load_data()
+        merged.loc[partner_missing, "FULL_NAME"] = merged.loc[
+            partner_missing, "USER_EMAIL"
+        ].map(name_map2)
+        merged.loc[partner_missing, "STATUS_NAME"] = merged.loc[
+            partner_missing, "USER_EMAIL"
+        ].map(status_map2)
+
+    return merged
 
 
-@router.get("/cost-centers", response_model=List[str])
-async def get_cost_centers():
-    df = await get_cached_data()
+@cached(ttl=CACHE_TTL_SECONDS, serializer=PickleSerializer())
+async def get_cached_cost_centers_list() -> List[str]:
+    """
+    Cache the cost center list so the UI dropdown doesn't cause repeated work.
+    """
+    df = await get_cached_final_df()
+
     if "cost_center_name" not in df.columns:
-        raise HTTPException(
-            status_code=400, detail="CSV missing 'cost_center_name' column"
-        )
+        raise HTTPException(status_code=400, detail="CSV missing 'cost_center_name' column")
 
     centers = sorted(
         {
@@ -94,95 +202,56 @@ async def get_cost_centers():
     return centers
 
 
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+
+@router.get("/cost-centers", response_model=List[str])
+async def get_cost_centers() -> List[str]:
+    return await get_cached_cost_centers_list()
+
+
 @router.get("/license-reduction", response_model=List[Dict[str, Any]])
 async def get_license_reduction(
-    cost_center_name: str = Query(..., description="Exact cost‑center name")
+    cost_center_name: str = Query(..., description="Exact cost-center name"),
 ) -> List[Dict[str, Any]]:
     """
-    Retrieve licence‑reduction information for a given cost‑center.
-    If a row does not have a FULL_NAME after the *primary* merge, we attempt
-    a secondary merge against `user_data2` (fallback employee data).
+    Return a list of records in the exact shape expected by the Next frontend.
     """
-    # 1Load cached licence/analyst data
-    df = await get_cached_data()
+    df = await get_cached_final_df()
 
-    # ------------------------------------------------------------------
-    # Defensive check – the CSV must contain the column you are filtering on
-    # ------------------------------------------------------------------
     if "cost_center_name" not in df.columns:
-        raise HTTPException(
-            status_code=400, detail="CSV missing 'cost_center_name' column"
-        )
+        raise HTTPException(status_code=400, detail="CSV missing 'cost_center_name' column")
 
-    # Filter to the requested cost‑center (case‑insensitive, stripped)
-    filt_mask = (
-        df["cost_center_name"].astype(str).str.strip().eq(cost_center_name.strip())
-    )
-    filtered = df.loc[filt_mask].copy()
+    mask = df["cost_center_name"].astype(str).str.strip().eq(cost_center_name.strip())
+    filtered = df.loc[mask].copy()
 
-    # ------------------------------------------------------------------
-    # SECONDARY MERGE – only for rows where FULL_NAME is still null
-    # ------------------------------------------------------------------
-    missing_name_mask = filtered["FULL_NAME"].isna()
-    if missing_name_mask.any():
-        # Pull the fallback employee list (only once)
-        fallback_emp = _get_fallback_employee_data()
+    def safe(v):
+        return None if pd.isna(v) else v
 
-        # Merge *just* the rows that need a name
-        # We keep only the columns we need from the right side (full_name + smtp)
-        to_fix = filtered.loc[missing_name_mask].merge(
-            fallback_emp,
-            how="left",
-            left_on="USER_EMAIL",
-            right_on="smtp",
-            suffixes=("", "_fb"),
-        )
-
-        # Fill the missing FULL_NAME with whatever we got from the fallback
-        # (`full_name` column comes from the right side of the merge)
-        fallback_map = to_fix.set_index("USER_EMAIL")["full_name"].to_dict()
-        filtered.loc[missing_name_mask, "FULL_NAME"] = filtered.loc[
-            missing_name_mask, "USER_EMAIL"
-        ].map(fallback_map)
-
-        # Drop the temporary `smtp` column that was added.
-        if "smtp" in filtered.columns:
-            filtered = filtered.drop(columns="smtp")
-
-
-    # ------------------------------------------------------------------
-    # Helper: turn a pandas Series → the dict expected by the response model
-    # ------------------------------------------------------------------
     def row_to_ui(r: pd.Series) -> Dict[str, Any]:
-        """Safely convert pandas values to plain‑python / JSON‑serialisable types."""
-
-        def safe_convert(value):
-            # pandas uses its own NA type – treat it as None
-            if pd.isna(value) or isinstance(value, pd._libs.missing.NAType):
-                return None
-            return value
-
         return {
-            "name": safe_convert(r.get("FULL_NAME", "")),
-            "user": safe_convert(r.get("USER_NAME", "")),
-            "email": safe_convert(r.get("USER_EMAIL", "")),
-            "costCenterName": safe_convert(r.get("cost_center_name", "")),
-            "departmentName": safe_convert(r.get("dept_name", "")),
-            "title": safe_convert(r.get("title", "")),
-            "recommendedAction": safe_convert(r.get("recommendedAction", "")),
-            "lastActivity": safe_convert(r.get("LAST_ACTIVITY", "")),
-            "analystActionsPerDay": safe_convert(
-                r.get("ANALYST_ACTIONS_PER_DAY", 0) or 0
-            ),
-            "analystFunctions": safe_convert(r.get("ANALYST_FUNCTIONS", 0) or 0),
-            "nonAnalystFunctions": safe_convert(r.get("NON_ANALYST_FUNCTIONS", 0) or 0),
-            "activeDays": safe_convert(r.get("ACTIVE_DAYS", 0) or 0),
-            "titleCategory": safe_convert(r.get("TITLE_CATEGORY", "")),
-            "analystPct": safe_convert(r.get("ANALYST_PCT", "")),
-            "analystUserFlag": safe_convert(r.get("ANALYST_USER_FLAG", False)),
-            "analystThreshold": safe_convert(r.get("ANALYST_THRESHOLD", "")),
+            # UI-visible columns
+            "name": safe(r.get("FULL_NAME")),
+            "statusName": safe(r.get("STATUS_NAME")),
+            "user": safe(r.get("USER_NAME")),
+            "email": safe(r.get("USER_EMAIL")),
+            "costCenterName": safe(r.get("cost_center_name")),
+            "departmentName": safe(r.get("dept_name")),
+            "title": safe(r.get("title")),
+            "recommendedAction": safe(r.get("recommendedAction")),
+
+            # Extra fields (optional; safe to keep for later UI expansion)
+            "lastActivity": safe(r.get("LAST_ACTIVITY")),
+            "analystActionsPerDay": float(r.get("ANALYST_ACTIONS_PER_DAY") or 0),
+            "analystFunctions": int(r.get("ANALYST_FUNCTIONS") or 0),
+            "nonAnalystFunctions": int(r.get("NON_ANALYST_FUNCTIONS") or 0),
+            "activeDays": int(r.get("ACTIVE_DAYS") or 0),
+            "titleCategory": safe(r.get("TITLE_CATEGORY")),
+            "analystPct": safe(r.get("ANALYST_PCT")),
+            "analystUserFlag": bool(r.get("ANALYST_USER_FLAG") or False),
+            "analystThreshold": safe(r.get("ANALYST_THRESHOLD")),
         }
 
-    # Build the list of dicts that FastAPI will serialise to JSON
-    records = [row_to_ui(row) for _, row in filtered.iterrows()]
-    return records
+    return [row_to_ui(row) for _, row in filtered.iterrows()]

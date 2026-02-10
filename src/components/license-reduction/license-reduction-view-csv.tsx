@@ -37,7 +37,6 @@ async function fetchRows(costCenter: string): Promise<any[]> {
   return res.json()
 }
 
-
 export default function LicenseReductionView() {
   const [costCenter, setCostCenter] = React.useState("")
 
@@ -47,20 +46,55 @@ export default function LicenseReductionView() {
   })
 
   const { data: rows = [], isLoading } = useQuery({
-  queryKey: ["license-reduction", costCenter],
-  queryFn: () => fetchRows(costCenter),
-  enabled: !!costCenter,
+    queryKey: ["license-reduction-csv", costCenter],
+    queryFn: () => fetchRows(costCenter),
+    enabled: !!costCenter,
   })
 
   const analystCount = React.useMemo(
-  () => rows.filter(r => r.recommendedAction === "Analyst").length,
-  [rows]
-);
+    () => rows.filter(r => r.recommendedAction === "Analyst").length,
+    [rows]
+  );
 
-const consumerCount = React.useMemo(
-  () => rows.filter(r => r.recommendedAction === "Consumer").length,
-  [rows]
-);
+  const consumerCount = React.useMemo(
+    () => rows.filter(r => r.recommendedAction === "Consumer").length,
+    [rows]
+  );
+
+
+   // Memoize sorted and grouped rows
+  const sortedRows = React.useMemo(() => {
+    if (!rows.length) return [];
+
+    // Separate analysts and consumers
+    const analysts = rows.filter(r => r.recommendedAction === "Analyst");
+    const consumers = rows.filter(r => r.recommendedAction !== "Analyst");
+
+    // Group by user and sort each group
+    const getGroupedAndSorted = (arr: any[]) => {
+      const userMap = new Map<string, any[]>();
+      arr.forEach(item => {
+        if (!userMap.has(item.user)) {
+          userMap.set(item.user, []);
+        }
+        userMap.get(item.user)!.push(item);
+      });
+
+      // Sort each user group by user name
+      userMap.forEach(group => {
+        group.sort((a, b) => a.name.localeCompare(b.name));
+      });
+
+      // Convert back to array and sort by user name
+      return Array.from(userMap.values())
+        .sort((a, b) => a[0].user.localeCompare(b[0].user))
+        .flat();
+    };
+
+    return [...getGroupedAndSorted(analysts), ...getGroupedAndSorted(consumers)];
+  }, [rows]);
+
+
   return (
     <div className="w-full px-4"> {/* Make full width with padding */}
       <Card className="shadow-md">
@@ -77,7 +111,7 @@ const consumerCount = React.useMemo(
               <li className="flex items-start">
                 <span className="mr-1">•</span>
                 <span>
-                Users who perform 1+ analyst actions <strong>per day</strong> over the 90-day period are considered a candidate for an Analyst license
+                  Users who perform 1+ analyst actions <strong>per day</strong> over the 90-day period are considered a candidate for an Analyst license
                 </span>
               </li>
             </ul>
@@ -143,34 +177,50 @@ const consumerCount = React.useMemo(
                   <TableHead>Cost Center</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Title</TableHead>
+                  <TableHead>Employee Status</TableHead>
                   <TableHead>Recommended License</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.length === 0 ? (
+                {sortedRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
+                    <TableCell colSpan={8} className="text-center py-4">
                       No data available
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rows.map((r, idx) => (
+                  sortedRows.map((r, idx) => (
                     <TableRow key={idx}>
-                      <TableCell>{r.name}</TableCell>
+                      <TableCell>
+                      {r.name === "Possibly Terminated" ? (
+                        <span className="text-red-500 italic">{r.name}</span>
+                      ) : (
+                        <span>{r.name}</span>
+                      )}
+                    </TableCell>
                       <TableCell>{r.user}</TableCell>
                       <TableCell>{r.email}</TableCell>
                       <TableCell>{r.costCenterName}</TableCell>
                       <TableCell>{r.departmentName}</TableCell>
                       <TableCell>{r.title}</TableCell>
                       <TableCell>
-                      {r.recommendedAction === "Analyst" ? (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800">
-                          {r.recommendedAction}
-                        </Badge>
-                      ) : (
-                        <span>{r.recommendedAction}</span>
-                      )}
-                    </TableCell>
+                        {r.statusName === "Unknown" || r.statusName === "Terminated" ? (
+                          <Badge variant="secondary" className="bg-red-100 text-red-800">
+                            {r.statusName}
+                          </Badge>
+                        ) : (
+                          <span>{r.statusName}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {r.recommendedAction === "Analyst" ? (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                            {r.recommendedAction}
+                          </Badge>
+                        ) : (
+                          <span>{r.recommendedAction}</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

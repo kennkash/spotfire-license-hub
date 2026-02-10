@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 
+import { getApiBase } from "@/lib/apiBase"
+
 async function fetchCostCenters(): Promise<string[]> {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL
-  if (!base) throw new Error("NEXT_PUBLIC_API_BASE_URL is not set")
+  const base = getApiBase()
 
   const res = await fetch(`${base}/v0/cost-centers`, {
     credentials: "include",
@@ -20,12 +21,11 @@ async function fetchCostCenters(): Promise<string[]> {
   return res.json()
 }
 
-
 async function fetchRows(costCenter: string): Promise<any[]> {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL
-  if (!base) throw new Error("NEXT_PUBLIC_API_BASE_URL is not set")
+  const base = getApiBase()
 
-  const url = new URL(`${base}/v0/license-reduction`)
+  const url = new URL(`${base}/v0/license-reduction`, window.location.origin)
+  // ^ ensures relative base works too
   url.searchParams.set("cost_center_name", costCenter)
 
   const res = await fetch(url.toString(), {

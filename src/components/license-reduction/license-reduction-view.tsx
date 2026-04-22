@@ -8,6 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Info } from "lucide-react";
+
 
 import { getApiBase } from "@/lib/apiBase"
 
@@ -144,7 +147,7 @@ export default function LicenseReductionView() {
       return as.localeCompare(bs, undefined, { sensitivity: "base" }) * dir
     }
 
-    // ✅ When user sorts, let rows move freely (no Analyst pinning)
+    // When user sorts, let rows move freely (no Analyst pinning)
     return filteredRows.slice().sort(compare)
   }, [filteredRows, sortKey, sortDir])
 
@@ -171,27 +174,53 @@ export default function LicenseReductionView() {
     )
   }
 
+  const searchRef = React.useRef<HTMLInputElement | null>(null)
+
+
   return (
     <div className="w-full px-4">
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>License Reduction Data</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <CardTitle>License Reduction Data</CardTitle>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button className="p-1 rounded-full hover:bg-accent">
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Spotfire License Reduction</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-foreground">
+                    For more information on the Spotfire License Reduction, visit this{" "}
+                    <a
+                      href="https://confluence.samsungaustin.com/x/TiQsN"
+                      className="text-blue-600 hover:text-blue-800 underline transition-colors duration-200"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Confluence Page
+                    </a>
+                  </p>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
 
           {/* Description */}
           <div className="space-y-2 text-sm text-muted-foreground mt-2 mb-4">
             <p className="font-medium">Data includes:</p>
-            <ul className="space-y-1">
-              <li className="flex items-start">
-                <span className="mr-1">•</span>
-                Users who have logged into Spotfire in the last 90 days
+            <ul className="space-y-2 list-disc pl-5">
+              <li>Users who have logged into Spotfire in the last 90 days</li>
+              <li>
+                Users who perform 1+ analyst actions <strong>per day</strong> over the 90-day period are considered a
+                candidate for an Analyst license
               </li>
-              <li className="flex items-start">
-                <span className="mr-1">•</span>
-                <span>
-                  Users who perform 1+ analyst actions <strong>per day</strong> over the 90-day period are considered a
-                  candidate for an Analyst license
-                </span>
-              </li>
+              <li>If a user is not listed, they will <strong className="text-red-500">not</strong> be granted a license</li>
+              <li>Need to reallocate a license? Click <a href="/license-swap" className="text-blue-600 hover:text-blue-800 underline transition-colors duration-200">here</a></li>
             </ul>
           </div>
 
@@ -209,35 +238,61 @@ export default function LicenseReductionView() {
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex flex-col gap-1 sm:items-end">
+              {/* Top row: Search + Reset */}
+              <div className="flex items-center gap-2">
+                <div className="relative sm:w-[340px]">
+                  <Input
+                    ref={searchRef}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search name, email, or username…"
+                    className="sm:w-[340px]"
+                    disabled={!costCenter || isLoading}
+                  />
 
-            <div className="flex items-center gap-2">
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name, email, or username…"
-                className="sm:w-[340px]"
-                disabled={!costCenter || isLoading}
-              />
+                  {!!search.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch("")
+                        requestAnimationFrame(() => searchRef.current?.focus())
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label="Clear search"
+                      title="Clear"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
 
-              {sortKey && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSortKey(null)
-                    setSortDir("asc")
-                  }}
-                >
-                  Reset
-                </Button>
+                <div className="w-[72px]">
+                  {sortKey && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSortKey(null)
+                        setSortDir("asc")
+                      }}
+                      disabled={!costCenter || isLoading}
+                      className="w-full"
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Second row: align under the whole top row (search + reset slot) */}
+              {!!search.trim() && (
+                <div className="text-sm text-muted-foreground w-[calc(340px+8px+72px)]">
+                  Showing {finalRows.length} of {defaultOrderedRows.length}
+                </div>
               )}
             </div>
           </div>
-          {!!search.trim() && (
-            <div className="mt-2 text-sm text-muted-foreground">
-              Showing {finalRows.length} of {defaultOrderedRows.length}
-            </div>
-          )}
 
           {/* Summary */}
           {costCenter && rows.length > 0 && (
@@ -276,6 +331,10 @@ export default function LicenseReductionView() {
         <CardContent className="overflow-x-auto">
           {isLoading ? (
             <div className="text-center py-8">Loading…</div>
+          ) : !costCenter ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Please select a cost center above to view its license data.
+            </div>
           ) : (
             <Table>
               <TableHeader>

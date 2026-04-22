@@ -155,9 +155,7 @@ async function postSwap(payload: {
 
   const data = await res.json().catch(() => null)
 
-  if (data) {
-    return data
-  }
+  if (data) return data
 
   throw new Error(`API error ${res.status}`)
 }
@@ -181,10 +179,10 @@ export default function LicenseSwapView() {
   const [sortKey, setSortKey] = React.useState<SortKey | null>(null)
   const [sortDir, setSortDir] = React.useState<SortDir>("asc")
 
-  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [expandedUser, setExpandedUser] = React.useState<string | null>(null)
   const [selectedSourceUser, setSelectedSourceUser] = React.useState<LicenseRow | null>(null)
-  const [targetSearch, setTargetSearch] = React.useState("")
   const [selectedTargetUser, setSelectedTargetUser] = React.useState<CostCenterUser | null>(null)
+  const [targetSearch, setTargetSearch] = React.useState("")
   const [swapLicenseType, setSwapLicenseType] = React.useState<"Analyst" | "Consumer">("Consumer")
   const [swapResult, setSwapResult] = React.useState<SwapResponse | null>(null)
 
@@ -197,7 +195,7 @@ export default function LicenseSwapView() {
     refetchOnWindowFocus: false,
   })
 
-  const { data: rows = [], isLoading: rowsLoading, refetch: refetchRows } = useQuery({
+  const { data: rows = [], isLoading, refetch: refetchRows } = useQuery({
     queryKey: ["license-reduction", costCenter],
     queryFn: () => fetchReductionRows(costCenter),
     enabled: !!costCenter,
@@ -213,7 +211,7 @@ export default function LicenseSwapView() {
   } = useQuery({
     queryKey: ["license-swap-users-by-cost-center", costCenter],
     queryFn: () => fetchUsersByCostCenter(costCenter),
-    enabled: !!costCenter && dialogOpen,
+    enabled: !!costCenter && !!expandedUser,
     refetchOnWindowFocus: false,
     staleTime: 30 * 1000,
     retry: 1,
@@ -223,7 +221,7 @@ export default function LicenseSwapView() {
     setSearch("")
     setSortKey(null)
     setSortDir("asc")
-    setDialogOpen(false)
+    setExpandedUser(null)
     setSelectedSourceUser(null)
     setSelectedTargetUser(null)
     setTargetSearch("")
@@ -344,29 +342,24 @@ export default function LicenseSwapView() {
     setSortDir((d) => (d === "asc" ? "desc" : "asc"))
   }
 
-  const openSwapDialog = (row: LicenseRow) => {
+  const openInlineSwap = (row: LicenseRow) => {
+    const isSameRow = expandedUser === row.user
+
+    if (isSameRow) {
+      setExpandedUser(null)
+      setSelectedSourceUser(null)
+      setSelectedTargetUser(null)
+      setTargetSearch("")
+      setSwapResult(null)
+      return
+    }
+
+    setExpandedUser(row.user)
     setSelectedSourceUser(row)
     setSelectedTargetUser(null)
     setTargetSearch("")
     setSwapResult(null)
-
-    if (row.recommendedAction === "Analyst") {
-      setSwapLicenseType("Analyst")
-    } else {
-      setSwapLicenseType("Consumer")
-    }
-
-    setDialogOpen(true)
-  }
-
-  const closeSwapDialog = (open: boolean) => {
-    setDialogOpen(open)
-
-    if (!open) {
-      setTargetSearch("")
-      setSelectedTargetUser(null)
-      setSwapResult(null)
-    }
+    setSwapLicenseType(row.recommendedAction === "Analyst" ? "Analyst" : "Consumer")
   }
 
   const runSwap = (dryRun: boolean) => {
@@ -383,6 +376,12 @@ export default function LicenseSwapView() {
     })
   }
 
+  const canSubmitSwap =
+    !!selectedSourceUser &&
+    !!selectedTargetUser &&
+    !!costCenter &&
+    !swapMutation.isPending
+
   const SortableHead = ({ label, k }: { label: string; k: SortKey }) => {
     const active = sortKey === k
     return (
@@ -394,13 +393,6 @@ export default function LicenseSwapView() {
       </TableHead>
     )
   }
-
-  const isLoading = rowsLoading
-  const canSubmitSwap =
-    !!selectedSourceUser &&
-    !!selectedTargetUser &&
-    !!costCenter &&
-    !swapMutation.isPending
 
   return (
     <div className="w-full px-4">
@@ -419,17 +411,9 @@ export default function LicenseSwapView() {
                   <DialogHeader>
                     <DialogTitle>Spotfire License Swap</DialogTitle>
                   </DialogHeader>
-                  <div className="space-y-3 text-foreground">
-                    <p>
-                      This page shows the same license reduction data, but also lets managers start a license swap for a user in their authorized cost center.
-                    </p>
-                    <ul className="space-y-2 list-disc pl-5 text-sm text-muted-foreground">
-                      <li>Select a cost center you are allowed to manage</li>
-                      <li>Click <strong>Swap License</strong> on the user you want to swap from</li>
-                      <li>Select the target user in the same cost center</li>
-                      <li>The backend will validate whether the swap is allowed and return any issues</li>
-                    </ul>
-                  </div>
+                  <p className="text-foreground">
+                    This page shows the same license reduction data and lets managers swap a license from one user to another within the same cost center.
+                  </p>
                 </DialogContent>
               </Dialog>
             </div>
@@ -440,7 +424,7 @@ export default function LicenseSwapView() {
             <ul className="space-y-2 list-disc pl-5">
               <li>The same reduction data used on the License Reduction page</li>
               <li>Only cost centers the current user is allowed to manage</li>
-              <li>A per-user swap action that opens a same-cost-center target selection flow</li>
+              <li>A per-user inline swap action to choose a replacement user in the same cost center</li>
             </ul>
           </div>
 
@@ -576,184 +560,190 @@ export default function LicenseSwapView() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  finalRows.map((row) => (
-                    <TableRow key={`${row.user}-${row.email}`}>
-                      <TableCell>{row.name}</TableCell>
-                      <TableCell>{row.user}</TableCell>
-                      <TableCell>{row.email}</TableCell>
-                      <TableCell>{row.costCenterName}</TableCell>
-                      <TableCell>{row.departmentName}</TableCell>
-                      <TableCell>{row.title}</TableCell>
-                      <TableCell>{row.statusName}</TableCell>
-                      <TableCell>{badgeForRecommendation(row.recommendedAction)}</TableCell>
-                      <TableCell>
-                        <Button size="sm" onClick={() => openSwapDialog(row)}>
-                          Swap License
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  finalRows.flatMap((row) => {
+                    const isExpanded = expandedUser === row.user
+
+                    return [
+                      <TableRow key={`row-${row.user}-${row.email}`}>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell>{row.user}</TableCell>
+                        <TableCell>{row.email}</TableCell>
+                        <TableCell>{row.costCenterName}</TableCell>
+                        <TableCell>{row.departmentName}</TableCell>
+                        <TableCell>{row.title}</TableCell>
+                        <TableCell>{row.statusName}</TableCell>
+                        <TableCell>{badgeForRecommendation(row.recommendedAction)}</TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant={isExpanded ? "secondary" : "default"}
+                            onClick={() => openInlineSwap(row)}
+                          >
+                            {isExpanded ? "Close Swap" : "Swap License"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>,
+
+                      ...(isExpanded
+                        ? [
+                            <TableRow key={`expand-${row.user}`}>
+                              <TableCell colSpan={9} className="bg-muted/20">
+                                <div className="py-4">
+                                  <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+                                    <div className="space-y-4">
+                                      <div className="rounded border bg-background p-4">
+                                        <div className="text-sm text-muted-foreground">Swap from</div>
+                                        <div className="mt-1 font-medium">{row.name}</div>
+                                        <div className="text-sm text-muted-foreground">{row.user}</div>
+                                        <div className="text-sm text-muted-foreground">{row.email}</div>
+                                      </div>
+
+                                      <div className="rounded border bg-background p-4">
+                                        <div className="text-sm text-muted-foreground mb-2">License type to swap</div>
+                                        <Select
+                                          value={swapLicenseType}
+                                          onValueChange={(v) => setSwapLicenseType(v as "Analyst" | "Consumer")}
+                                        >
+                                          <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Select license type" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="Consumer">Consumer</SelectItem>
+                                            <SelectItem value="Analyst">Analyst</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      {selectedTargetUser && (
+                                        <div className="rounded border bg-background p-4">
+                                          <div className="text-sm text-muted-foreground">Swap to</div>
+                                          <div className="mt-1 font-medium">{selectedTargetUser.fullName}</div>
+                                          <div className="text-sm text-muted-foreground">{selectedTargetUser.gadId}</div>
+                                        </div>
+                                      )}
+
+                                      <div className="flex flex-wrap gap-2">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => runSwap(true)}
+                                          disabled={!canSubmitSwap}
+                                        >
+                                          Validate Swap
+                                        </Button>
+                                        <Button
+                                          onClick={() => runSwap(false)}
+                                          disabled={!canSubmitSwap}
+                                        >
+                                          Submit Swap
+                                        </Button>
+                                      </div>
+                                    </div>
+
+                                    <div className="rounded border bg-background">
+                                      <div className="border-b p-4">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                          <div>
+                                            <div className="font-medium">Select replacement user</div>
+                                            <div className="text-sm text-muted-foreground">
+                                              Users in {costCenter}, excluding {row.user}
+                                            </div>
+                                          </div>
+
+                                          <Input
+                                            value={targetSearch}
+                                            onChange={(e) => setTargetSearch(e.target.value)}
+                                            placeholder="Search name or gad id…"
+                                            className="sm:w-[260px]"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      <div className="max-h-[420px] overflow-y-auto">
+                                        <Table>
+                                          <TableHeader className="sticky top-0 bg-background z-10">
+                                            <TableRow>
+                                              <TableHead className="w-[96px]">Select</TableHead>
+                                              <TableHead>Full Name</TableHead>
+                                              <TableHead>GAD ID</TableHead>
+                                            </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                            {usersLoading ? (
+                                              <TableRow>
+                                                <TableCell colSpan={3} className="text-center py-8">
+                                                  Loading users…
+                                                </TableCell>
+                                              </TableRow>
+                                            ) : targetOptions.length === 0 ? (
+                                              <TableRow>
+                                                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                                                  No users found.
+                                                </TableCell>
+                                              </TableRow>
+                                            ) : (
+                                              targetOptions.map((user) => {
+                                                const isSelected = selectedTargetUser?.gadId === user.gadId
+
+                                                return (
+                                                  <TableRow
+                                                    key={user.gadId}
+                                                    className={isSelected ? "bg-accent/40" : ""}
+                                                  >
+                                                    <TableCell>
+                                                      <Button
+                                                        size="sm"
+                                                        variant={isSelected ? "default" : "outline"}
+                                                        onClick={() =>
+                                                          setSelectedTargetUser(isSelected ? null : user)
+                                                        }
+                                                      >
+                                                        {isSelected ? "Selected" : "Select"}
+                                                      </Button>
+                                                    </TableCell>
+                                                    <TableCell>{user.fullName}</TableCell>
+                                                    <TableCell>{user.gadId}</TableCell>
+                                                  </TableRow>
+                                                )
+                                              })
+                                            )}
+                                          </TableBody>
+                                        </Table>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {swapResult && selectedSourceUser?.user === row.user && (
+                                    <div
+                                      className={
+                                        swapResult.success
+                                          ? "mt-4 rounded border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-900"
+                                          : "mt-4 rounded border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-900"
+                                      }
+                                    >
+                                      <div className="font-medium">{swapResult.message}</div>
+
+                                      {!!swapResult.issues?.length && (
+                                        <ul className="mt-2 list-disc pl-5 space-y-1">
+                                          {swapResult.issues.map((issue, idx) => (
+                                            <li key={`${issue.code}-${idx}`}>{issue.message}</li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>,
+                          ]
+                        : []),
+                    ]
+                  })
                 )}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={closeSwapDialog}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Swap Spotfire License</DialogTitle>
-          </DialogHeader>
-
-          {!selectedSourceUser ? null : (
-            <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded border p-3">
-                  <div className="text-sm text-muted-foreground">Swap from</div>
-                  <div className="mt-1 font-medium">{selectedSourceUser.name}</div>
-                  <div className="text-sm text-muted-foreground">{selectedSourceUser.user}</div>
-                  <div className="text-sm text-muted-foreground">{selectedSourceUser.email}</div>
-                </div>
-
-                <div className="rounded border p-3">
-                  <div className="text-sm text-muted-foreground">License type to swap</div>
-                  <div className="mt-3">
-                    <Select value={swapLicenseType} onValueChange={(v) => setSwapLicenseType(v as "Analyst" | "Consumer")}>
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Select license type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Consumer">Consumer</SelectItem>
-                        <SelectItem value="Analyst">Analyst</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded border">
-                <div className="border-b p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="font-medium">Select target user</div>
-                      <div className="text-sm text-muted-foreground">
-                        Showing active users in {costCenter}, excluding {selectedSourceUser.user}.
-                      </div>
-                    </div>
-
-                    <Input
-                      value={targetSearch}
-                      onChange={(e) => setTargetSearch(e.target.value)}
-                      placeholder="Search name or gad id…"
-                      className="sm:w-[260px]"
-                    />
-                  </div>
-                </div>
-
-                <div className="max-h-[360px] overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead />
-                        <TableHead>Full Name</TableHead>
-                        <TableHead>GAD ID</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {usersLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center py-8">
-                            Loading users…
-                          </TableCell>
-                        </TableRow>
-                      ) : targetOptions.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                            No eligible users found.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        targetOptions.map((user) => {
-                          const isSelected = selectedTargetUser?.gadId === user.gadId
-
-                          return (
-                            <TableRow
-                              key={user.gadId}
-                              className={isSelected ? "bg-accent/40" : ""}
-                            >
-                              <TableCell>
-                                <Button
-                                  size="sm"
-                                  variant={isSelected ? "default" : "outline"}
-                                  onClick={() => setSelectedTargetUser(isSelected ? null : user)}
-                                >
-                                  {isSelected ? "Selected" : "Select"}
-                                </Button>
-                              </TableCell>
-                              <TableCell>{user.fullName}</TableCell>
-                              <TableCell>{user.gadId}</TableCell>
-                            </TableRow>
-                          )
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-
-              {selectedTargetUser && (
-                <div className="rounded border p-3 bg-background">
-                  <div className="font-medium mb-2">Pending Swap</div>
-                  <div className="text-sm">
-                    <span className="font-medium">{selectedSourceUser.user}</span>
-                    {" → "}
-                    <span className="font-medium">{selectedTargetUser.gadId}</span>
-                    {" "}
-                    ({swapLicenseType})
-                  </div>
-                </div>
-              )}
-
-              {swapResult && (
-                <div
-                  className={
-                    swapResult.success
-                      ? "rounded border border-green-200 bg-green-50 px-3 py-3 text-sm text-green-900"
-                      : "rounded border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-900"
-                  }
-                >
-                  <div className="font-medium">{swapResult.message}</div>
-
-                  {!!swapResult.issues?.length && (
-                    <ul className="mt-2 list-disc pl-5 space-y-1">
-                      {swapResult.issues.map((issue, idx) => (
-                        <li key={`${issue.code}-${idx}`}>{issue.message}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => runSwap(true)}
-                  disabled={!canSubmitSwap}
-                >
-                  Validate Swap
-                </Button>
-                <Button
-                  onClick={() => runSwap(false)}
-                  disabled={!canSubmitSwap}
-                >
-                  Submit Swap
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

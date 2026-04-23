@@ -1,22 +1,5 @@
 "use client"
 
-
-<div className="rounded border bg-background p-4">
-  <div className="text-sm text-muted-foreground mb-2">License to swap</div>
-  <div>
-    {swapLicenseType === "Analyst" ? (
-      <Badge variant="secondary" className="bg-green-100 text-green-800">
-        Analyst
-      </Badge>
-    ) : (
-      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-        Consumer
-      </Badge>
-    )}
-  </div>
-</div>
-
-
 import * as React from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,34 +13,33 @@ import { Info } from "lucide-react"
 
 import { getApiBase } from "@/lib/apiBase"
 
-type LicenseRow = {
-  name: string
-  user: string
-  email: string
+type CurrentLicense = "Analyst" | "Consumer" | "Unlicensed"
+
+type LicenseUserRow = {
+  id?: number | null
+  fullName: string
+  username: string
+  gadId?: string
+  email: string | null
   costCenterName: string
-  departmentName: string
-  title: string
-  statusName: string
-  recommendedAction: "Analyst" | "Consumer" | string
+  departmentName: string | null
+  title: string | null
+  currentLicense: CurrentLicense
+  licenseGroups?: string[]
+  licenseGrantedAt?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+  existsInLicensedUsers?: boolean
 }
 
 type CostCentersResponse = {
   success: boolean
-  code: string
-  message: string
-  requesterKnoxId: string
-  isSpotfireAdmin: boolean
   costCenters: string[]
 }
 
-type CostCenterUser = {
-  fullName: string
-  gadId: string
-}
-
-type UsersByCostCenterResponse = {
+type UsersResponse = {
   costCenterName: string
-  users: CostCenterUser[]
+  users: LicenseUserRow[]
 }
 
 type SwapIssue = {
@@ -88,12 +70,50 @@ type SwapResponse = {
   rollbackSucceeded?: boolean | null
 }
 
-type SortKey = keyof Pick<
-  LicenseRow,
-  "name" | "user" | "email" | "costCenterName" | "departmentName" | "title" | "statusName" | "recommendedAction"
->
+type SortKey =
+  | "fullName"
+  | "username"
+  | "email"
+  | "costCenterName"
+  | "departmentName"
+  | "title"
+  | "currentLicense"
 
 type SortDir = "asc" | "desc"
+
+function normalizeLicense(value: unknown): CurrentLicense {
+  const text = String(value ?? "").trim()
+
+  if (text === "Analyst") return "Analyst"
+  if (text === "Consumer") return "Consumer"
+  return "Unlicensed"
+}
+
+function normalizeUser(row: any): LicenseUserRow {
+  const username = String(row.username ?? row.gadId ?? row.gad_id ?? row.user ?? "").trim()
+
+  return {
+    id: row.id ?? null,
+    fullName: String(row.fullName ?? row.full_name ?? row.name ?? username).trim(),
+    username,
+    gadId: String(row.gadId ?? row.gad_id ?? username).trim(),
+    email: row.email ?? row.smtp ?? null,
+    costCenterName: String(row.costCenterName ?? row.cost_center_name ?? "").trim(),
+    departmentName: row.departmentName ?? row.department_name ?? row.dept_name ?? null,
+    title: row.title ?? null,
+    currentLicense: normalizeLicense(row.currentLicense ?? row.current_license),
+    licenseGroups: row.licenseGroups ?? row.license_groups ?? [],
+    licenseGrantedAt: row.licenseGrantedAt ?? row.license_granted_at ?? null,
+    createdAt: row.createdAt ?? row.created_at ?? null,
+    updatedAt: row.updatedAt ?? row.updated_at ?? null,
+    existsInLicensedUsers: row.existsInLicensedUsers ?? row.exists_in_licensed_users,
+  }
+}
+
+function normalizeUsersResponse(data: any): LicenseUserRow[] {
+  const rawUsers = Array.isArray(data) ? data : data?.users ?? []
+  return rawUsers.map(normalizeUser).filter((user: LicenseUserRow) => user.username)
+}
 
 async function fetchAuthorizedCostCenters(): Promise<string[]> {
   const base = getApiBase()
@@ -112,10 +132,10 @@ async function fetchAuthorizedCostCenters(): Promise<string[]> {
   return data.costCenters ?? []
 }
 
-async function fetchReductionRows(costCenter: string): Promise<LicenseRow[]> {
+async function fetchLicensedUsers(costCenter: string): Promise<LicenseUserRow[]> {
   const base = getApiBase()
 
-  const url = new URL(`${base}/v0/license-reduction`, window.location.origin)
+  const url = new URL(`${base}/v0/license-swap/licensed-users`, window.location.origin)
   url.searchParams.set("cost_center_name", costCenter)
 
   const res = await fetch(url.toString(), {
@@ -128,10 +148,11 @@ async function fetchReductionRows(costCenter: string): Promise<LicenseRow[]> {
     throw new Error(text || `API error ${res.status}`)
   }
 
-  return res.json()
+  const data = await res.json()
+  return normalizeUsersResponse(data)
 }
 
-async function fetchUsersByCostCenter(costCenter: string): Promise<CostCenterUser[]> {
+async function fetchUsersByCostCenter(costCenter: string): Promise<LicenseUserRow[]> {
   const base = getApiBase()
 
   const url = new URL(`${base}/v0/license-swap/users-by-cost-center`, window.location.origin)
@@ -147,8 +168,8 @@ async function fetchUsersByCostCenter(costCenter: string): Promise<CostCenterUse
     throw new Error(text || `API error ${res.status}`)
   }
 
-  const data: UsersByCostCenterResponse = await res.json()
-  return data.users ?? []
+  const data: UsersResponse = await res.json()
+  return normalizeUsersResponse(data)
 }
 
 async function postSwap(payload: {
@@ -171,10 +192,21 @@ async function postSwap(payload: {
   })
 
   const data = await res.json().catch(() => null)
-
   if (data) return data
 
   throw new Error(`API error ${res.status}`)
+}
+
+function LicenseBadge({ value }: { value: CurrentLicense }) {
+  if (value === "Analyst") {
+    return <Badge variant="secondary" className="bg-green-100 text-green-800">Analyst</Badge>
+  }
+
+  if (value === "Consumer") {
+    return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Consumer</Badge>
+  }
+
+  return <Badge variant="secondary" className="bg-slate-100 text-slate-700">Unlicensed</Badge>
 }
 
 function sortIcon(active: boolean, dir: SortDir) {
@@ -182,12 +214,21 @@ function sortIcon(active: boolean, dir: SortDir) {
   return dir === "asc" ? "▲" : "▼"
 }
 
-function badgeForRecommendation(value: string) {
-  if (value === "Analyst") {
-    return <Badge variant="secondary" className="bg-green-100 text-green-800">Analyst</Badge>
-  }
+function userMatchesSearch(row: LicenseUserRow, query: string) {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
 
-  return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Consumer</Badge>
+  return [
+    row.fullName,
+    row.username,
+    row.email,
+    row.costCenterName,
+    row.departmentName,
+    row.title,
+    row.currentLicense,
+  ]
+    .map((value) => String(value ?? "").toLowerCase())
+    .some((value) => value.includes(q))
 }
 
 export default function LicenseSwapView() {
@@ -197,10 +238,9 @@ export default function LicenseSwapView() {
   const [sortDir, setSortDir] = React.useState<SortDir>("asc")
 
   const [expandedUser, setExpandedUser] = React.useState<string | null>(null)
-  const [selectedSourceUser, setSelectedSourceUser] = React.useState<LicenseRow | null>(null)
-  const [selectedTargetUser, setSelectedTargetUser] = React.useState<CostCenterUser | null>(null)
+  const [selectedSourceUser, setSelectedSourceUser] = React.useState<LicenseUserRow | null>(null)
+  const [selectedTargetUser, setSelectedTargetUser] = React.useState<LicenseUserRow | null>(null)
   const [targetSearch, setTargetSearch] = React.useState("")
-  const [swapLicenseType, setSwapLicenseType] = React.useState<"Analyst" | "Consumer">("Consumer")
   const [swapResult, setSwapResult] = React.useState<SwapResponse | null>(null)
 
   const searchRef = React.useRef<HTMLInputElement | null>(null)
@@ -212,9 +252,13 @@ export default function LicenseSwapView() {
     refetchOnWindowFocus: false,
   })
 
-  const { data: rows = [], isLoading, refetch: refetchRows } = useQuery({
-    queryKey: ["license-reduction", costCenter],
-    queryFn: () => fetchReductionRows(costCenter),
+  const {
+    data: rows = [],
+    isLoading,
+    refetch: refetchLicensedUsers,
+  } = useQuery({
+    queryKey: ["license-swap-licensed-users", costCenter],
+    queryFn: () => fetchLicensedUsers(costCenter),
     enabled: !!costCenter,
     refetchOnWindowFocus: false,
     staleTime: 30 * 1000,
@@ -246,74 +290,44 @@ export default function LicenseSwapView() {
   }, [costCenter])
 
   const analystCount = React.useMemo(
-    () => rows.filter((r) => r.recommendedAction === "Analyst").length,
+    () => rows.filter((r) => r.currentLicense === "Analyst").length,
     [rows]
   )
 
   const consumerCount = React.useMemo(
-    () => rows.filter((r) => r.recommendedAction === "Consumer").length,
+    () => rows.filter((r) => r.currentLicense === "Consumer").length,
     [rows]
   )
 
-  const defaultOrderedRows = React.useMemo<LicenseRow[]>(() => {
-    if (!rows.length) return []
+  const filteredRows = React.useMemo(() => {
+    return rows.filter((row) => userMatchesSearch(row, search))
+  }, [rows, search])
 
-    const analysts = rows.filter((r) => r.recommendedAction === "Analyst")
-    const consumers = rows.filter((r) => r.recommendedAction !== "Analyst")
-
-    const byUsername = (a: LicenseRow, b: LicenseRow) =>
-      String(a.user ?? "").localeCompare(String(b.user ?? ""), undefined, { sensitivity: "base" })
-
-    analysts.sort(byUsername)
-    consumers.sort(byUsername)
-
-    return [...analysts, ...consumers]
-  }, [rows])
-
-  const filteredRows = React.useMemo<LicenseRow[]>(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return defaultOrderedRows
-
-    return defaultOrderedRows.filter((r) => {
-      const name = String(r.name ?? "").toLowerCase()
-      const email = String(r.email ?? "").toLowerCase()
-      const user = String(r.user ?? "").toLowerCase()
-      return name.includes(q) || email.includes(q) || user.includes(q)
-    })
-  }, [defaultOrderedRows, search])
-
-  const finalRows = React.useMemo<LicenseRow[]>(() => {
-    if (!sortKey) return filteredRows
+  const finalRows = React.useMemo(() => {
+    if (!sortKey) {
+      return filteredRows.slice().sort((a, b) => {
+        const licenseOrder = { Analyst: 0, Consumer: 1, Unlicensed: 2 }
+        const licenseCompare = licenseOrder[a.currentLicense] - licenseOrder[b.currentLicense]
+        if (licenseCompare !== 0) return licenseCompare
+        return a.username.localeCompare(b.username, undefined, { sensitivity: "base" })
+      })
+    }
 
     const dir = sortDir === "asc" ? 1 : -1
 
-    const compare = (a: LicenseRow, b: LicenseRow) => {
-      const av = a[sortKey]
-      const bv = b[sortKey]
-
-      const as = String(av ?? "")
-      const bs = String(bv ?? "")
-
-      return as.localeCompare(bs, undefined, { sensitivity: "base" }) * dir
-    }
-
-    return filteredRows.slice().sort(compare)
+    return filteredRows.slice().sort((a, b) => {
+      const av = String(a[sortKey] ?? "")
+      const bv = String(b[sortKey] ?? "")
+      return av.localeCompare(bv, undefined, { sensitivity: "base" }) * dir
+    })
   }, [filteredRows, sortKey, sortDir])
 
   const targetOptions = React.useMemo(() => {
-    const sourceUser = String(selectedSourceUser?.user ?? "").trim().toLowerCase()
-    const q = targetSearch.trim().toLowerCase()
+    const sourceUser = selectedSourceUser?.username.trim().toLowerCase()
 
     return costCenterUsers
-      .filter((user) => user.gadId.trim().toLowerCase() !== sourceUser)
-      .filter((user) => {
-        if (!q) return true
-
-        return (
-          user.fullName.toLowerCase().includes(q) ||
-          user.gadId.toLowerCase().includes(q)
-        )
-      })
+      .filter((user) => user.username.trim().toLowerCase() !== sourceUser)
+      .filter((user) => userMatchesSearch(user, targetSearch))
   }, [costCenterUsers, selectedSourceUser, targetSearch])
 
   const swapMutation = useMutation({
@@ -322,7 +336,7 @@ export default function LicenseSwapView() {
       setSwapResult(data)
 
       if (data.success && !variables.dry_run) {
-        await Promise.all([refetchRows(), refetchUsers()])
+        await Promise.all([refetchLicensedUsers(), refetchUsers()])
       }
     },
     onError: (error: Error) => {
@@ -330,11 +344,12 @@ export default function LicenseSwapView() {
         success: false,
         code: "LICENSE_SWAP_REQUEST_FAILED",
         message: error.message || "License swap request failed.",
-        licenseType: swapLicenseType,
+        licenseType:
+          selectedSourceUser?.currentLicense === "Analyst" ? "Analyst" : "Consumer",
         groupName: "",
         costCenterName: costCenter,
-        requestedFrom: selectedSourceUser?.user ?? "",
-        requestedTo: selectedTargetUser?.gadId ?? "",
+        requestedFrom: selectedSourceUser?.username ?? "",
+        requestedTo: selectedTargetUser?.username ?? "",
         removed: [],
         added: [],
         notLicensed: [],
@@ -359,8 +374,8 @@ export default function LicenseSwapView() {
     setSortDir((d) => (d === "asc" ? "desc" : "asc"))
   }
 
-  const openInlineSwap = (row: LicenseRow) => {
-    const isSameRow = expandedUser === row.user
+  const openInlineSwap = (row: LicenseUserRow) => {
+    const isSameRow = expandedUser === row.username
 
     if (isSameRow) {
       setExpandedUser(null)
@@ -371,23 +386,23 @@ export default function LicenseSwapView() {
       return
     }
 
-    setExpandedUser(row.user)
+    setExpandedUser(row.username)
     setSelectedSourceUser(row)
     setSelectedTargetUser(null)
     setTargetSearch("")
     setSwapResult(null)
-    setSwapLicenseType(row.recommendedAction === "Analyst" ? "Analyst" : "Consumer")
   }
 
   const runSwap = (dryRun: boolean) => {
     if (!selectedSourceUser || !selectedTargetUser || !costCenter) return
+    if (selectedSourceUser.currentLicense === "Unlicensed") return
 
     setSwapResult(null)
 
     swapMutation.mutate({
-      from_username: selectedSourceUser.user,
-      to_username: selectedTargetUser.gadId,
-      license_type: swapLicenseType,
+      from_username: selectedSourceUser.username,
+      to_username: selectedTargetUser.username,
+      license_type: selectedSourceUser.currentLicense,
       cost_center_name: costCenter,
       dry_run: dryRun,
     })
@@ -395,12 +410,14 @@ export default function LicenseSwapView() {
 
   const canSubmitSwap =
     !!selectedSourceUser &&
+    selectedSourceUser.currentLicense !== "Unlicensed" &&
     !!selectedTargetUser &&
     !!costCenter &&
     !swapMutation.isPending
 
   const SortableHead = ({ label, k }: { label: string; k: SortKey }) => {
     const active = sortKey === k
+
     return (
       <TableHead>
         <Button variant="ghost" className="px-0 h-auto font-medium" onClick={() => onSort(k)}>
@@ -411,41 +428,44 @@ export default function LicenseSwapView() {
     )
   }
 
+  const UserColumns = ({ user }: { user: LicenseUserRow }) => (
+    <>
+      <TableCell>{user.fullName || "—"}</TableCell>
+      <TableCell>{user.username || "—"}</TableCell>
+      <TableCell>{user.email || "—"}</TableCell>
+      <TableCell>{user.costCenterName || "—"}</TableCell>
+      <TableCell>{user.departmentName || "—"}</TableCell>
+      <TableCell>{user.title || "—"}</TableCell>
+      <TableCell>
+        <LicenseBadge value={user.currentLicense} />
+      </TableCell>
+    </>
+  )
+
   return (
     <div className="w-full px-4">
       <Card className="shadow-md">
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <CardTitle>License Swap</CardTitle>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <button className="p-1 rounded-full hover:bg-accent">
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Spotfire License Swap</DialogTitle>
-                  </DialogHeader>
-                  <p className="text-foreground">
-                    This page shows the same license reduction data and lets managers swap a license from one user to another within the same cost center.
-                  </p>
-                </DialogContent>
-              </Dialog>
-            </div>
+          <div className="flex items-center gap-2">
+            <CardTitle>License Swap</CardTitle>
+            <Dialog>
+              <DialogTrigger asChild>
+                <button className="p-1 rounded-full hover:bg-accent">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Spotfire License Swap</DialogTitle>
+                </DialogHeader>
+                <p className="text-foreground">
+                  Select a licensed user, choose another user in the same cost center, and submit the license swap.
+                </p>
+              </DialogContent>
+            </Dialog>
           </div>
 
-          <div className="space-y-2 text-sm text-muted-foreground mt-2 mb-4">
-            <p className="font-medium">Data includes:</p>
-            <ul className="space-y-2 list-disc pl-5">
-              <li>The same reduction data used on the License Reduction page</li>
-              <li>Only cost centers the current user is allowed to manage</li>
-              <li>A per-user inline swap action to choose a replacement user in the same cost center</li>
-            </ul>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
             <Select value={costCenter} onValueChange={setCostCenter}>
               <SelectTrigger className="w-[280px]">
                 <SelectValue placeholder={costCentersLoading ? "Loading cost centers..." : "Select a cost center"} />
@@ -459,87 +479,59 @@ export default function LicenseSwapView() {
               </SelectContent>
             </Select>
 
-            <div className="flex flex-col gap-1 sm:items-end">
-              <div className="flex items-center gap-2">
-                <div className="relative sm:w-[340px]">
-                  <Input
-                    ref={searchRef}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search name, email, or username…"
-                    className="sm:w-[340px]"
-                    disabled={!costCenter || isLoading}
-                  />
+            <div className="flex items-center gap-2">
+              <div className="relative sm:w-[340px]">
+                <Input
+                  ref={searchRef}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search users…"
+                  className="sm:w-[340px]"
+                  disabled={!costCenter || isLoading}
+                />
 
-                  {!!search.trim() && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearch("")
-                        requestAnimationFrame(() => searchRef.current?.focus())
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      aria-label="Clear search"
-                      title="Clear"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                <div className="w-[72px]">
-                  {sortKey && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSortKey(null)
-                        setSortDir("asc")
-                      }}
-                      disabled={!costCenter || isLoading}
-                      className="w-full"
-                    >
-                      Reset
-                    </Button>
-                  )}
-                </div>
+                {!!search.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch("")
+                      requestAnimationFrame(() => searchRef.current?.focus())
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
-              {!!search.trim() && (
-                <div className="text-sm text-muted-foreground w-[calc(340px+8px+72px)]">
-                  Showing {finalRows.length} of {defaultOrderedRows.length}
-                </div>
+              {sortKey && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSortKey(null)
+                    setSortDir("asc")
+                  }}
+                >
+                  Reset
+                </Button>
               )}
             </div>
           </div>
 
           {costCenter && rows.length > 0 && (
             <div className="mt-4 p-3 bg-background rounded border">
-              <div className="font-medium mb-2">License Distribution</div>
+              <div className="font-medium mb-2">Current License Distribution</div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-green-500">Analysts</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span>{analystCount} users</span>
-                    <span className="bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded text-green-800 dark:text-green-200 font-medium">
-                      {Math.round((analystCount / rows.length) * 100)}%
-                    </span>
-                  </div>
+                  <span className="text-green-500">Analysts</span>
+                  <span>{analystCount} users</span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-blue-500">Consumers</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span>{consumerCount} users</span>
-                    <span className="bg-blue-100 dark:bg-blue-900/20 px-2 py-1 rounded text-blue-800 dark:text-blue-200 font-medium">
-                      {Math.round((consumerCount / rows.length) * 100)}%
-                    </span>
-                  </div>
+                  <span className="text-blue-500">Consumers</span>
+                  <span>{consumerCount} users</span>
                 </div>
               </div>
             </div>
@@ -551,20 +543,19 @@ export default function LicenseSwapView() {
             <div className="text-center py-8">Loading…</div>
           ) : !costCenter ? (
             <div className="text-center py-8 text-muted-foreground">
-              Please select a cost center above to view its license data.
+              Please select a cost center above.
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <SortableHead label="Full Name" k="name" />
-                  <SortableHead label="Username" k="user" />
+                  <SortableHead label="Full Name" k="fullName" />
+                  <SortableHead label="Username" k="username" />
                   <SortableHead label="Email" k="email" />
                   <SortableHead label="Cost Center" k="costCenterName" />
                   <SortableHead label="Department" k="departmentName" />
                   <SortableHead label="Title" k="title" />
-                  <SortableHead label="Status" k="statusName" />
-                  <SortableHead label="Recommended" k="recommendedAction" />
+                  <SortableHead label="Current License" k="currentLicense" />
                   <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
@@ -572,29 +563,23 @@ export default function LicenseSwapView() {
               <TableBody>
                 {finalRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      No users found for this cost center.
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      No users found.
                     </TableCell>
                   </TableRow>
                 ) : (
                   finalRows.flatMap((row) => {
-                    const isExpanded = expandedUser === row.user
+                    const isExpanded = expandedUser === row.username
 
                     return [
-                      <TableRow key={`row-${row.user}-${row.email}`}>
-                        <TableCell>{row.name}</TableCell>
-                        <TableCell>{row.user}</TableCell>
-                        <TableCell>{row.email}</TableCell>
-                        <TableCell>{row.costCenterName}</TableCell>
-                        <TableCell>{row.departmentName}</TableCell>
-                        <TableCell>{row.title}</TableCell>
-                        <TableCell>{row.statusName}</TableCell>
-                        <TableCell>{badgeForRecommendation(row.recommendedAction)}</TableCell>
+                      <TableRow key={`row-${row.username}`}>
+                        <UserColumns user={row} />
                         <TableCell>
                           <Button
                             size="sm"
                             variant={isExpanded ? "secondary" : "default"}
                             onClick={() => openInlineSwap(row)}
+                            disabled={row.currentLicense === "Unlicensed"}
                           >
                             {isExpanded ? "Close Swap" : "Swap License"}
                           </Button>
@@ -603,39 +588,30 @@ export default function LicenseSwapView() {
 
                       ...(isExpanded
                         ? [
-                            <TableRow key={`expand-${row.user}`}>
-                              <TableCell colSpan={9} className="bg-muted/20">
+                            <TableRow key={`expand-${row.username}`}>
+                              <TableCell colSpan={8} className="bg-muted/20">
                                 <div className="py-4">
                                   <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
                                     <div className="space-y-4">
                                       <div className="rounded border bg-background p-4">
                                         <div className="text-sm text-muted-foreground">Swap from</div>
-                                        <div className="mt-1 font-medium">{row.name}</div>
-                                        <div className="text-sm text-muted-foreground">{row.user}</div>
-                                        <div className="text-sm text-muted-foreground">{row.email}</div>
+                                        <div className="mt-1 font-medium">{row.fullName}</div>
+                                        <div className="text-sm text-muted-foreground">{row.username}</div>
                                       </div>
 
                                       <div className="rounded border bg-background p-4">
-                                        <div className="text-sm text-muted-foreground mb-2">License type to swap</div>
-                                        <Select
-                                          value={swapLicenseType}
-                                          onValueChange={(v) => setSwapLicenseType(v as "Analyst" | "Consumer")}
-                                        >
-                                          <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Select license type" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="Consumer">Consumer</SelectItem>
-                                            <SelectItem value="Analyst">Analyst</SelectItem>
-                                          </SelectContent>
-                                        </Select>
+                                        <div className="text-sm text-muted-foreground mb-2">License to swap</div>
+                                        <LicenseBadge value={row.currentLicense} />
                                       </div>
 
                                       {selectedTargetUser && (
                                         <div className="rounded border bg-background p-4">
                                           <div className="text-sm text-muted-foreground">Swap to</div>
                                           <div className="mt-1 font-medium">{selectedTargetUser.fullName}</div>
-                                          <div className="text-sm text-muted-foreground">{selectedTargetUser.gadId}</div>
+                                          <div className="text-sm text-muted-foreground">{selectedTargetUser.username}</div>
+                                          <div className="mt-2">
+                                            <LicenseBadge value={selectedTargetUser.currentLicense} />
+                                          </div>
                                         </div>
                                       )}
 
@@ -662,14 +638,14 @@ export default function LicenseSwapView() {
                                           <div>
                                             <div className="font-medium">Select replacement user</div>
                                             <div className="text-sm text-muted-foreground">
-                                              Users in {costCenter}, excluding {row.user}
+                                              Users in {costCenter}, excluding {row.username}
                                             </div>
                                           </div>
 
                                           <Input
                                             value={targetSearch}
                                             onChange={(e) => setTargetSearch(e.target.value)}
-                                            placeholder="Search name or gad id…"
+                                            placeholder="Search users…"
                                             className="sm:w-[260px]"
                                           />
                                         </div>
@@ -681,29 +657,35 @@ export default function LicenseSwapView() {
                                             <TableRow>
                                               <TableHead className="w-[96px]">Select</TableHead>
                                               <TableHead>Full Name</TableHead>
-                                              <TableHead>GAD ID</TableHead>
+                                              <TableHead>Username</TableHead>
+                                              <TableHead>Email</TableHead>
+                                              <TableHead>Cost Center</TableHead>
+                                              <TableHead>Department</TableHead>
+                                              <TableHead>Title</TableHead>
+                                              <TableHead>Current License</TableHead>
                                             </TableRow>
                                           </TableHeader>
+
                                           <TableBody>
                                             {usersLoading ? (
                                               <TableRow>
-                                                <TableCell colSpan={3} className="text-center py-8">
+                                                <TableCell colSpan={8} className="text-center py-8">
                                                   Loading users…
                                                 </TableCell>
                                               </TableRow>
                                             ) : targetOptions.length === 0 ? (
                                               <TableRow>
-                                                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                                                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                                                   No users found.
                                                 </TableCell>
                                               </TableRow>
                                             ) : (
                                               targetOptions.map((user) => {
-                                                const isSelected = selectedTargetUser?.gadId === user.gadId
+                                                const isSelected = selectedTargetUser?.username === user.username
 
                                                 return (
                                                   <TableRow
-                                                    key={user.gadId}
+                                                    key={user.username}
                                                     className={isSelected ? "bg-accent/40" : ""}
                                                   >
                                                     <TableCell>
@@ -717,8 +699,7 @@ export default function LicenseSwapView() {
                                                         {isSelected ? "Selected" : "Select"}
                                                       </Button>
                                                     </TableCell>
-                                                    <TableCell>{user.fullName}</TableCell>
-                                                    <TableCell>{user.gadId}</TableCell>
+                                                    <UserColumns user={user} />
                                                   </TableRow>
                                                 )
                                               })
@@ -729,7 +710,7 @@ export default function LicenseSwapView() {
                                     </div>
                                   </div>
 
-                                  {swapResult && selectedSourceUser?.user === row.user && (
+                                  {swapResult && selectedSourceUser?.username === row.username && (
                                     <div
                                       className={
                                         swapResult.success

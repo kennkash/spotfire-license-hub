@@ -1,3 +1,32 @@
+## Error Type
+Runtime TypeError
+
+## Error Message
+Cannot read properties of undefined (reading 'trim')
+
+
+    at LicenseSwapView.useMemo[targetOptions] (src/app/(app)/license-swap/page.tsx:329:45)
+    at Array.filter (<anonymous>:null:null)
+    at LicenseSwapView.useMemo[targetOptions] (src/app/(app)/license-swap/page.tsx:329:14)
+    at LicenseSwapView (src/app/(app)/license-swap/page.tsx:325:40)
+
+## Code Frame
+  327 |
+  328 |         return costCenterUsers
+> 329 |             .filter((user) => user.username.trim().toLowerCase() !== sourceUser)
+      |                                             ^
+  330 |             .filter((user) => userMatchesSearch(user, targetSearch))
+  331 |     }, [costCenterUsers, selectedSourceUser, targetSearch])
+  332 |
+
+Next.js version: 16.1.6 (Turbopack)
+
+
+
+
+
+
+
 "use client"
 
 import * as React from "react"

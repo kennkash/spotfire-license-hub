@@ -520,21 +520,31 @@ export default function LicenseSwapView() {
                     </div>
 
                     {costCenter && rows.length > 0 && (
-                        <div className="mt-4 p-3 bg-background rounded border">
-                            <div className="font-medium mb-2">Current License Distribution</div>
-
-                            <div className="space-y-2 text-sm">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-green-500">Analysts</span>
-                                    <span>{analystCount} users</span>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-blue-500">Consumers</span>
-                                    <span>{consumerCount} users</span>
-                                </div>
+                      <div className="mt-4 p-3 bg-background rounded border">
+                        <div className="font-medium mb-2">Current License Distribution</div>
+                    
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-green-500">Analysts</span>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span>{analystCount} users</span>
+                              <span className="bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded text-green-800 dark:text-green-200 font-medium">
+                                {Math.round((analystCount / rows.length) * 100)}%
+                              </span>
                             </div>
+                          </div>
+                    
+                          <div className="flex items-center justify-between">
+                            <span className="text-blue-500">Consumers</span>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span>{consumerCount} users</span>
+                              <span className="bg-blue-100 dark:bg-blue-900/20 px-2 py-1 rounded text-blue-800 dark:text-blue-200 font-medium">
+                                {Math.round((consumerCount / rows.length) * 100)}%
+                              </span>
+                            </div>
+                          </div>
                         </div>
+                      </div>
                     )}
                 </CardHeader>
 

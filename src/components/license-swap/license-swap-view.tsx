@@ -1,5 +1,22 @@
 "use client"
 
+
+<div className="rounded border bg-background p-4">
+  <div className="text-sm text-muted-foreground mb-2">License to swap</div>
+  <div>
+    {swapLicenseType === "Analyst" ? (
+      <Badge variant="secondary" className="bg-green-100 text-green-800">
+        Analyst
+      </Badge>
+    ) : (
+      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+        Consumer
+      </Badge>
+    )}
+  </div>
+</div>
+
+
 import * as React from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

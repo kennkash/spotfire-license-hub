@@ -1,26 +1,524 @@
-## Error Type
-Runtime TypeError
+/v0/license-swap/users-by-cost-center?cost_center_name=Digital%20Solutions
 
-## Error Message
-Cannot read properties of undefined (reading 'trim')
-
-
-    at LicenseSwapView.useMemo[targetOptions] (src/app/(app)/license-swap/page.tsx:329:45)
-    at Array.filter (<anonymous>:null:null)
-    at LicenseSwapView.useMemo[targetOptions] (src/app/(app)/license-swap/page.tsx:329:14)
-    at LicenseSwapView (src/app/(app)/license-swap/page.tsx:325:40)
-
-## Code Frame
-  327 |
-  328 |         return costCenterUsers
-> 329 |             .filter((user) => user.username.trim().toLowerCase() !== sourceUser)
-      |                                             ^
-  330 |             .filter((user) => userMatchesSearch(user, targetSearch))
-  331 |     }, [costCenterUsers, selectedSourceUser, targetSearch])
-  332 |
-
-Next.js version: 16.1.6 (Turbopack)
-
+{
+  "costCenterName": "Digital Solutions",
+  "users": [
+    {
+      "id": null,
+      "fullName": "Austin James Charles Stiefelmaier",
+      "username": "a.stiefelmai",
+      "gadId": "a.stiefelmai",
+      "email": "a.stiefelmai@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Science SSO",
+      "title": "Senior Engineer",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": 1996,
+      "fullName": "Brent Rodhouse",
+      "username": "b.rodhouse",
+      "gadId": "b.rodhouse",
+      "email": "b.rodhouse@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Platform Engineering SSO",
+      "title": "Senior Engineer",
+      "licenseGroups": [
+        "LSI User",
+        "LSI PowerUser"
+      ],
+      "currentLicense": "Consumer",
+      "licenseGrantedAt": "2026-04-23T17:31:54.062143",
+      "createdAt": "2026-04-23T17:31:54.062143",
+      "updatedAt": "2026-04-23T17:31:54.062143",
+      "existsInLicensedUsers": true
+    },
+    {
+      "id": null,
+      "fullName": "Brittney O'Neill Buchheister",
+      "username": "b.oneill",
+      "gadId": "b.oneill",
+      "email": "b.oneill@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions",
+      "title": "Staff Engineer I TR",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Charlene Huang",
+      "username": "c2.huang",
+      "gadId": "c2.huang",
+      "email": "c2.huang@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Science SSO",
+      "title": "Engineer I",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "ChungHyun Kim",
+      "username": "chung.kim",
+      "gadId": "chung.kim",
+      "email": "chung.kim@partner.samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions",
+      "title": "Indirect-Etc.",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": 784,
+      "fullName": "Daniel Drummond Moody",
+      "username": "d.moody",
+      "gadId": "d.moody",
+      "email": "d.moody@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions",
+      "title": "Staff Engineer I TR",
+      "licenseGroups": [
+        "LSI PowerUser"
+      ],
+      "currentLicense": "Consumer",
+      "licenseGrantedAt": "2026-04-23T17:31:54.062143",
+      "createdAt": "2026-04-23T17:31:54.062143",
+      "updatedAt": "2026-04-23T17:31:54.062143",
+      "existsInLicensedUsers": true
+    },
+    {
+      "id": null,
+      "fullName": "Daniel P Sunwoo",
+      "username": "d.sunwoo",
+      "gadId": "d.sunwoo",
+      "email": "d.sunwoo@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Platform Engineering SSO",
+      "title": "Staff Engineer II",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Edward Park",
+      "username": "edward2.park",
+      "gadId": "edward2.park",
+      "email": "edward2.park@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Platform Engineering SSO",
+      "title": "Engineer II",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Evelyn Merizalde Patino",
+      "username": "e.merizalde",
+      "gadId": "e.merizalde",
+      "email": "e.merizalde@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Platform Engineering SSO",
+      "title": "Senior Engineer",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Hai H Nguyen",
+      "username": "h.nguyen2",
+      "gadId": "h.nguyen2",
+      "email": "h.nguyen2@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Engineering SSO",
+      "title": "Staff Engineer I",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Harish Arora",
+      "username": "harish.arora",
+      "gadId": "harish.arora",
+      "email": "harish.arora@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Integrated Web Solutions",
+      "title": "Senior Engineer",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": 1460,
+      "fullName": "Heather Hannan Samra",
+      "username": "h.hannan",
+      "gadId": "h.hannan",
+      "email": "h.hannan@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Science SSO",
+      "title": "Engineer II",
+      "licenseGroups": [
+        "LSI PowerUser"
+      ],
+      "currentLicense": "Consumer",
+      "licenseGrantedAt": "2026-04-23T17:31:54.062143",
+      "createdAt": "2026-04-23T17:31:54.062143",
+      "updatedAt": "2026-04-23T17:31:54.062143",
+      "existsInLicensedUsers": true
+    },
+    {
+      "id": null,
+      "fullName": "HyunJun Jeon",
+      "username": "h1.jeon",
+      "gadId": "h1.jeon",
+      "email": "h1.jeon@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Integrated Web Solutions",
+      "title": "Professional II",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Jonathan Levy",
+      "username": "jon.levy",
+      "gadId": "jon.levy",
+      "email": "jon.levy@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "System Technology",
+      "title": "Director",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Joshua Leibowitz",
+      "username": "j.leibowitz",
+      "gadId": "j.leibowitz",
+      "email": "j.leibowitz@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions",
+      "title": "Staff Engineer I TR",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Justin McDonough",
+      "username": "justin.mc",
+      "gadId": "justin.mc",
+      "email": "justin.mc@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Data Intelligence SSO",
+      "title": "Indirect-Etc.",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": 55,
+      "fullName": "Kennedy Kashmiry",
+      "username": "k.kashmiry",
+      "gadId": "k.kashmiry",
+      "email": "k.kashmiry@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Knowledge Solutions SSO",
+      "title": "Engineer II",
+      "licenseGroups": [
+        "LSI PowerUser"
+      ],
+      "currentLicense": "Analyst",
+      "licenseGrantedAt": "2026-04-23T17:31:54.062143",
+      "createdAt": "2026-04-23T17:31:54.062143",
+      "updatedAt": "2026-04-23T17:31:54.062143",
+      "existsInLicensedUsers": true
+    },
+    {
+      "id": null,
+      "fullName": "Logan Ki-Hyun Goswick",
+      "username": "l.goswick",
+      "gadId": "l.goswick",
+      "email": "l.goswick@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Engineering SSO",
+      "title": "Engineer I",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Matthew Ryan Gilliland",
+      "username": "m.gilliland",
+      "gadId": "m.gilliland",
+      "email": "m.gilliland@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Science SSO",
+      "title": "Senior Engineer",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Megan Elizabeth Law",
+      "username": "m.law",
+      "gadId": "m.law",
+      "email": "m.law@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Science SSO",
+      "title": "Senior Engineer",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Onix Rodriguez Martinez",
+      "username": "or.martinez",
+      "gadId": "or.martinez",
+      "email": "or.martinez@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Platform Engineering SSO",
+      "title": "Staff Engineer I",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": 1626,
+      "fullName": "Paul Nester",
+      "username": "paul.nester",
+      "gadId": "paul.nester",
+      "email": "paul.nester@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Engineering SSO",
+      "title": "Senior Engineer",
+      "licenseGroups": [
+        "LSI PowerUser"
+      ],
+      "currentLicense": "Consumer",
+      "licenseGrantedAt": "2026-04-23T17:31:54.062143",
+      "createdAt": "2026-04-23T17:31:54.062143",
+      "updatedAt": "2026-04-23T17:31:54.062143",
+      "existsInLicensedUsers": true
+    },
+    {
+      "id": null,
+      "fullName": "Rajesh Srirangam",
+      "username": "r.srirangam",
+      "gadId": "r.srirangam",
+      "email": "r.srirangam@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Integrated Web Solutions",
+      "title": "Senior Engineer",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Ravi Kancharla",
+      "username": "v2.kancharla",
+      "gadId": "v2.kancharla",
+      "email": "v2.kancharla@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Science SSO",
+      "title": "Senior Engineer",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Sangmi Kim",
+      "username": "sangmi1.kim",
+      "gadId": "sangmi1.kim",
+      "email": "sangmi1.kim@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Engineering SSO",
+      "title": "Senior Engineer",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": 866,
+      "fullName": "Sramanth Varma Pandeti",
+      "username": "s.pandeti",
+      "gadId": "s.pandeti",
+      "email": "s.pandeti@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Knowledge Solutions SSO",
+      "title": "Staff Engineer I",
+      "licenseGroups": [
+        "LSI User",
+        "LSI PowerUser"
+      ],
+      "currentLicense": "Consumer",
+      "licenseGrantedAt": "2026-04-23T17:31:54.062143",
+      "createdAt": "2026-04-23T17:31:54.062143",
+      "updatedAt": "2026-04-23T17:31:54.062143",
+      "existsInLicensedUsers": true
+    },
+    {
+      "id": null,
+      "fullName": "Stephen J Tobin",
+      "username": "s.tobin",
+      "gadId": "s.tobin",
+      "email": "s.tobin@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions",
+      "title": "Principal Engineer II",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": null,
+      "fullName": "Taeyoun McKinzy",
+      "username": "t.mckinzy",
+      "gadId": "t.mckinzy",
+      "email": "t.mckinzy@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Engineering SSO",
+      "title": "Engineer II",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": 1833,
+      "fullName": "Tyler C Hedegard",
+      "username": "t.hedegard",
+      "gadId": "t.hedegard",
+      "email": "t.hedegard@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions",
+      "title": "Staff Engineer I TR",
+      "licenseGroups": [
+        "LSI PowerUser"
+      ],
+      "currentLicense": "Consumer",
+      "licenseGrantedAt": "2026-04-23T17:31:54.062143",
+      "createdAt": "2026-04-23T17:31:54.062143",
+      "updatedAt": "2026-04-23T17:31:54.062143",
+      "existsInLicensedUsers": true
+    },
+    {
+      "id": null,
+      "fullName": "Tyler Shirley",
+      "username": "t.shirley",
+      "gadId": "t.shirley",
+      "email": "t.shirley@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Data Science SSO",
+      "title": "Engineer II",
+      "licenseGroups": [],
+      "currentLicense": "Unlicensed",
+      "licenseGrantedAt": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "existsInLicensedUsers": false
+    },
+    {
+      "id": 1766,
+      "fullName": "Weston Michael Mauz",
+      "username": "w.mauz",
+      "gadId": "w.mauz",
+      "email": "w.mauz@samsung.com",
+      "costCenterName": "Digital Solutions",
+      "departmentName": "Digital Solutions - Integrated Web Solutions",
+      "title": "Engineer II",
+      "licenseGroups": [
+        "LSI User"
+      ],
+      "currentLicense": "Consumer",
+      "licenseGrantedAt": "2026-04-23T17:31:54.062143",
+      "createdAt": "2026-04-23T17:31:54.062143",
+      "updatedAt": "2026-04-23T17:31:54.062143",
+      "existsInLicensedUsers": true
+    }
+  ]
+}
 
 
 

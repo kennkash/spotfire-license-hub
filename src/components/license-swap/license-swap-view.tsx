@@ -661,57 +661,58 @@ export default function LicenseSwapView() {
                                                                         </div>
                                                                       </div>
                                                                     
-                                                                      <div className="max-h-[420px] overflow-y-auto p-3 space-y-2">
-                                                                        {usersLoading ? (
-                                                                          <div className="text-center py-8">Loading users…</div>
-                                                                        ) : targetOptions.length === 0 ? (
-                                                                          <div className="text-center py-8 text-muted-foreground">
-                                                                            No users found.
-                                                                          </div>
-                                                                        ) : (
-                                                                          targetOptions.map((user) => {
-                                                                            const isSelected = selectedTargetUser?.username === user.username
-                                                                    
-                                                                            return (
-                                                                              <button
-                                                                                key={user.username}
-                                                                                type="button"
-                                                                                onClick={() => setSelectedTargetUser(isSelected ? null : user)}
-                                                                                className={
-                                                                                  isSelected
-                                                                                    ? "w-full text-left rounded border border-primary bg-accent/50 p-3"
-                                                                                    : "w-full text-left rounded border bg-background hover:bg-muted/50 p-3"
-                                                                                }
-                                                                              >
-                                                                                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                                                                                  <div className="min-w-0">
-                                                                                    <div className="font-medium truncate">{user.fullName || "—"}</div>
-                                                                                    <div className="text-sm text-muted-foreground truncate">
-                                                                                      {user.username || "—"} · {user.email || "No email"}
+                                                                      <div className="max-h-[420px] overflow-y-auto overflow-x-hidden p-3">
+                                                                          <div className="flex flex-col gap-2">
+                                                                            {usersLoading ? (
+                                                                              <div className="text-center py-8">Loading users…</div>
+                                                                            ) : targetOptions.length === 0 ? (
+                                                                              <div className="text-center py-8 text-muted-foreground">
+                                                                                No users found.
+                                                                              </div>
+                                                                            ) : (
+                                                                              targetOptions.map((user) => {
+                                                                                const isSelected = selectedTargetUser?.username === user.username
+                                                                        
+                                                                                return (
+                                                                                  <button
+                                                                                    key={user.username}
+                                                                                    type="button"
+                                                                                    onClick={() => setSelectedTargetUser(isSelected ? null : user)}
+                                                                                    className={
+                                                                                      isSelected
+                                                                                        ? "block w-full text-left rounded border border-primary bg-accent/50 p-3"
+                                                                                        : "block w-full text-left rounded border bg-background hover:bg-muted/50 p-3"
+                                                                                    }
+                                                                                  >
+                                                                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                                                                      <div className="min-w-0">
+                                                                                        <div className="font-medium truncate">{user.fullName || "—"}</div>
+                                                                                        <div className="text-sm text-muted-foreground truncate">
+                                                                                          {user.username || "—"} · {user.email || "No email"}
+                                                                                        </div>
+                                                                                      </div>
+                                                                        
+                                                                                      <div className="shrink-0">
+                                                                                        <LicenseBadge value={user.currentLicense} />
+                                                                                      </div>
                                                                                     </div>
-                                                                                  </div>
-                                                                    
-                                                                                  <div className="shrink-0">
-                                                                                    <LicenseBadge value={user.currentLicense} />
-                                                                                  </div>
-                                                                                </div>
-                                                                    
-                                                                                <div className="mt-2 grid gap-1 text-sm text-muted-foreground md:grid-cols-2">
-                                                                                  <div className="truncate">
-                                                                                    <span className="font-medium text-foreground">Department:</span>{" "}
-                                                                                    {user.departmentName || "—"}
-                                                                                  </div>
-                                                                                  <div className="truncate">
-                                                                                    <span className="font-medium text-foreground">Title:</span>{" "}
-                                                                                    {user.title || "—"}
-                                                                                  </div>
-                                                                                </div>
-                                                                              </button>
-                                                                            )
-                                                                          })
-                                                                        )}
-                                                                      </div>
-                                                                    </div>
+                                                                        
+                                                                                    <div className="mt-2 grid gap-1 text-sm text-muted-foreground md:grid-cols-2">
+                                                                                      <div className="truncate">
+                                                                                        <span className="font-medium text-foreground">Department:</span>{" "}
+                                                                                        {user.departmentName || "—"}
+                                                                                      </div>
+                                                                                      <div className="truncate">
+                                                                                        <span className="font-medium text-foreground">Title:</span>{" "}
+                                                                                        {user.title || "—"}
+                                                                                      </div>
+                                                                                    </div>
+                                                                                  </button>
+                                                                                )
+                                                                              })
+                                                                            )}
+                                                                          </div>
+                                                                        </div>
 
                                                                 {swapResult && selectedSourceUser?.username === row.username && (
                                                                     <div

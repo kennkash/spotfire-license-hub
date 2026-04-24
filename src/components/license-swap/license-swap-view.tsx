@@ -336,7 +336,12 @@ export default function LicenseSwapView() {
             setSwapResult(data)
 
             if (data.success && !variables.dry_run) {
-                await Promise.all([refetchLicensedUsers(), refetchUsers()])
+              setSelectedTargetUser(null)
+              setExpandedUser(null)
+              setSelectedSourceUser(null)
+              setTargetSearch("")
+            
+              await Promise.all([refetchLicensedUsers(), refetchUsers()])
             }
         },
         onError: (error: Error) => {

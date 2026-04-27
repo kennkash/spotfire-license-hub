@@ -336,12 +336,12 @@ export default function LicenseSwapView() {
             setSwapResult(data)
 
             if (data.success && !variables.dry_run) {
-              setSelectedTargetUser(null)
-              setExpandedUser(null)
-              setSelectedSourceUser(null)
-              setTargetSearch("")
+                setSelectedTargetUser(null)
+                setExpandedUser(null)
+                setSelectedSourceUser(null)
+                setTargetSearch("")
             
-              await Promise.all([refetchLicensedUsers(), refetchUsers()])
+                await Promise.all([refetchLicensedUsers(), refetchUsers()])
             }
         },
         onError: (error: Error) => {
@@ -525,31 +525,31 @@ export default function LicenseSwapView() {
                     </div>
 
                     {costCenter && rows.length > 0 && (
-                      <div className="mt-4 p-3 bg-background rounded border">
-                        <div className="font-medium mb-2">Current License Distribution</div>
-                    
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-green-500">Analysts</span>
-                            <div className="flex items-center gap-4 text-sm">
-                              <span>{analystCount} users</span>
-                              <span className="bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded text-green-800 dark:text-green-200 font-medium">
-                                {Math.round((analystCount / rows.length) * 100)}%
-                              </span>
+                        <div className="mt-4 p-3 bg-background rounded border">
+                            <div className="font-medium mb-2">Current License Distribution</div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-green-500">Analysts</span>
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <span>{analystCount} users</span>
+                                        <span className="bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded text-green-800 dark:text-green-200 font-medium">
+                                            {Math.round((analystCount / rows.length) * 100)}%
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <span className="text-blue-500">Consumers</span>
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <span>{consumerCount} users</span>
+                                        <span className="bg-blue-100 dark:bg-blue-900/20 px-2 py-1 rounded text-blue-800 dark:text-blue-200 font-medium">
+                                            {Math.round((consumerCount / rows.length) * 100)}%
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                          </div>
-                    
-                          <div className="flex items-center justify-between">
-                            <span className="text-blue-500">Consumers</span>
-                            <div className="flex items-center gap-4 text-sm">
-                              <span>{consumerCount} users</span>
-                              <span className="bg-blue-100 dark:bg-blue-900/20 px-2 py-1 rounded text-blue-800 dark:text-blue-200 font-medium">
-                                {Math.round((consumerCount / rows.length) * 100)}%
-                              </span>
-                            </div>
-                          </div>
                         </div>
-                      </div>
                     )}
                 </CardHeader>
 
@@ -648,76 +648,78 @@ export default function LicenseSwapView() {
                                                                     </div>
 
                                                                     <div className="rounded border bg-background">
-                                                                      <div className="border-b p-4">
-                                                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                                                          <div>
-                                                                            <div className="font-medium">Select replacement user</div>
-                                                                            <div className="text-sm text-muted-foreground">
-                                                                              Users in {costCenter}, excluding {row.username}
+                                                                        <div className="border-b p-4">
+                                                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                                                <div>
+                                                                                    <div className="font-medium">Select replacement user</div>
+                                                                                    <div className="text-sm text-muted-foreground">
+                                                                                        Users in {costCenter}, excluding {row.username}
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <Input
+                                                                                    value={targetSearch}
+                                                                                    onChange={(e) => setTargetSearch(e.target.value)}
+                                                                                    placeholder="Search users…"
+                                                                                    className="sm:w-[260px]"
+                                                                                />
                                                                             </div>
-                                                                          </div>
-                                                                    
-                                                                          <Input
-                                                                            value={targetSearch}
-                                                                            onChange={(e) => setTargetSearch(e.target.value)}
-                                                                            placeholder="Search users…"
-                                                                            className="sm:w-[260px]"
-                                                                          />
                                                                         </div>
-                                                                      </div>
-                                                                    
-                                                                      <div className="max-h-[420px] overflow-y-auto overflow-x-hidden p-3">
-                                                                          <div className="flex flex-col gap-2">
-                                                                            {usersLoading ? (
-                                                                              <div className="text-center py-8">Loading users…</div>
-                                                                            ) : targetOptions.length === 0 ? (
-                                                                              <div className="text-center py-8 text-muted-foreground">
-                                                                                No users found.
-                                                                              </div>
-                                                                            ) : (
-                                                                              targetOptions.map((user) => {
-                                                                                const isSelected = selectedTargetUser?.username === user.username
-                                                                        
-                                                                                return (
-                                                                                  <button
-                                                                                    key={user.username}
-                                                                                    type="button"
-                                                                                    onClick={() => setSelectedTargetUser(isSelected ? null : user)}
-                                                                                    className={
-                                                                                      isSelected
-                                                                                        ? "block w-full text-left rounded border border-primary bg-accent/50 p-3"
-                                                                                        : "block w-full text-left rounded border bg-background hover:bg-muted/50 p-3"
-                                                                                    }
-                                                                                  >
-                                                                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                                                                                      <div className="min-w-0">
-                                                                                        <div className="font-medium truncate">{user.fullName || "—"}</div>
-                                                                                        <div className="text-sm text-muted-foreground truncate">
-                                                                                          {user.username || "—"} · {user.email || "No email"}
-                                                                                        </div>
-                                                                                      </div>
-                                                                        
-                                                                                      <div className="shrink-0">
-                                                                                        <LicenseBadge value={user.currentLicense} />
-                                                                                      </div>
+
+                                                                        <div className="max-h-[420px] overflow-y-auto overflow-x-hidden p-3">
+                                                                            <div className="flex flex-col gap-2">
+                                                                                {usersLoading ? (
+                                                                                    <div className="text-center py-8">Loading users…</div>
+                                                                                ) : targetOptions.length === 0 ? (
+                                                                                    <div className="text-center py-8 text-muted-foreground">
+                                                                                        No users found.
                                                                                     </div>
-                                                                        
-                                                                                    <div className="mt-2 grid gap-1 text-sm text-muted-foreground md:grid-cols-2">
-                                                                                      <div className="truncate">
-                                                                                        <span className="font-medium text-foreground">Department:</span>{" "}
-                                                                                        {user.departmentName || "—"}
-                                                                                      </div>
-                                                                                      <div className="truncate">
-                                                                                        <span className="font-medium text-foreground">Title:</span>{" "}
-                                                                                        {user.title || "—"}
-                                                                                      </div>
-                                                                                    </div>
-                                                                                  </button>
-                                                                                )
-                                                                              })
-                                                                            )}
-                                                                          </div>
+                                                                                ) : (
+                                                                                    targetOptions.map((user) => {
+                                                                                        const isSelected = selectedTargetUser?.username === user.username
+
+                                                                                        return (
+                                                                                            <button
+                                                                                                key={user.username}
+                                                                                                type="button"
+                                                                                                onClick={() => setSelectedTargetUser(isSelected ? null : user)}
+                                                                                                className={
+                                                                                                    isSelected
+                                                                                                        ? "block w-full text-left rounded border border-primary bg-accent/50 p-3"
+                                                                                                        : "block w-full text-left rounded border bg-background hover:bg-muted/50 p-3"
+                                                                                                }
+                                                                                            >
+                                                                                                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                                                                                    <div className="min-w-0">
+                                                                                                        <div className="font-medium truncate">{user.fullName || "—"}</div>
+                                                                                                        <div className="text-sm text-muted-foreground truncate">
+                                                                                                            {user.username || "—"} · {user.email || "No email"}
+                                                                                                        </div>
+                                                                                                    </div>
+
+                                                                                                    <div className="shrink-0">
+                                                                                                        <LicenseBadge value={user.currentLicense} />
+                                                                                                    </div>
+                                                                                                </div>
+
+                                                                                                <div className="mt-2 grid gap-1 text-sm text-muted-foreground md:grid-cols-2">
+                                                                                                    <div className="truncate">
+                                                                                                        <span className="font-medium text-foreground">Department:</span>{" "}
+                                                                                                        {user.departmentName || "—"}
+                                                                                                    </div>
+                                                                                                    <div className="truncate">
+                                                                                                        <span className="font-medium text-foreground">Title:</span>{" "}
+                                                                                                        {user.title || "—"}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </button>
+                                                                                        )
+                                                                                    })
+                                                                                )}
+                                                                            </div>
                                                                         </div>
+                                                                    </div>
+                                                                </div>
 
                                                                 {swapResult && selectedSourceUser?.username === row.username && (
                                                                     <div

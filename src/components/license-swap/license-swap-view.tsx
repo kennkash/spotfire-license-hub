@@ -24,6 +24,7 @@ type LicenseUserRow = {
     costCenterName: string
     departmentName: string | null
     title: string | null
+    status: string | null
     currentLicense: CurrentLicense
     licenseGroups?: string[]
     licenseGrantedAt?: string | null
@@ -77,6 +78,7 @@ type SortKey =
     | "costCenterName"
     | "departmentName"
     | "title"
+    | "status"
     | "currentLicense"
 
 type SortDir = "asc" | "desc"
@@ -101,6 +103,7 @@ function normalizeUser(row: any): LicenseUserRow {
         costCenterName: String(row.costCenterName ?? row.cost_center_name ?? "").trim(),
         departmentName: row.departmentName ?? row.department_name ?? row.dept_name ?? null,
         title: row.title ?? null,
+        status: row.status ?? row.statusName ?? row.status_name ?? null, 
         currentLicense: normalizeLicense(row.currentLicense ?? row.current_license),
         licenseGroups: row.licenseGroups ?? row.license_groups ?? [],
         licenseGrantedAt: row.licenseGrantedAt ?? row.license_granted_at ?? null,
@@ -225,6 +228,7 @@ function userMatchesSearch(row: LicenseUserRow, query: string) {
         row.costCenterName,
         row.departmentName,
         row.title,
+        row.status,
         row.currentLicense,
     ]
         .map((value) => String(value ?? "").toLowerCase())
@@ -446,6 +450,7 @@ export default function LicenseSwapView() {
             <TableCell>{user.costCenterName || "—"}</TableCell>
             <TableCell>{user.departmentName || "—"}</TableCell>
             <TableCell>{user.title || "—"}</TableCell>
+            <TableCell>{user.status || "—"}</TableCell>
             <TableCell>
                 <LicenseBadge value={user.currentLicense} />
             </TableCell>
@@ -575,6 +580,7 @@ export default function LicenseSwapView() {
                                     <SortableHead label="Cost Center" k="costCenterName" />
                                     <SortableHead label="Department" k="departmentName" />
                                     <SortableHead label="Title" k="title" />
+                                    <SortableHead label="Employee Status" k="status" />
                                     <SortableHead label="Current License" k="currentLicense" />
                                     <TableHead>Action</TableHead>
                                 </TableRow>
@@ -583,7 +589,7 @@ export default function LicenseSwapView() {
                             <TableBody>
                                 {finalRows.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                                             No users found.
                                         </TableCell>
                                     </TableRow>
@@ -609,7 +615,7 @@ export default function LicenseSwapView() {
                                             ...(isExpanded
                                                 ? [
                                                     <TableRow key={`expand-${row.username}`}>
-                                                        <TableCell colSpan={8} className="bg-muted/20">
+                                                        <TableCell colSpan={9} className="bg-muted/20">
                                                             <div className="py-4">
                                                                 <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
                                                                     <div className="space-y-4">
@@ -711,6 +717,10 @@ export default function LicenseSwapView() {
                                                                                                     <div className="truncate">
                                                                                                         <span className="font-medium text-foreground">Department:</span>{" "}
                                                                                                         {user.departmentName || "—"}
+                                                                                                    </div>
+                                                                                                    <div className="truncate">
+                                                                                                        <span className="font-medium text-foreground">Employee Status:</span>{" "}
+                                                                                                        {user.status || "—"}
                                                                                                     </div>
                                                                                                     <div className="truncate">
                                                                                                         <span className="font-medium text-foreground">Title:</span>{" "}

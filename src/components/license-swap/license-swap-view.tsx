@@ -289,18 +289,23 @@ export default function LicenseSwapView() {
         setSwapResult(null)
     }, [costCenter])
 
+    const licensedRows = React.useMemo(
+        () => rows.filter((r) => r.currentLicense !== "Unlicensed"),
+        [rows]
+    )
+
     const analystCount = React.useMemo(
-        () => rows.filter((r) => r.currentLicense === "Analyst").length,
+        () => licensedRows.filter((r) => r.currentLicense === "Analyst").length,
         [rows]
     )
 
     const consumerCount = React.useMemo(
-        () => rows.filter((r) => r.currentLicense === "Consumer").length,
+        () => licensedRows.filter((r) => r.currentLicense === "Consumer").length,
         [rows]
     )
 
     const filteredRows = React.useMemo(() => {
-        return rows.filter((row) => userMatchesSearch(row, search))
+        return licensedRows.filter((row) => userMatchesSearch(row, search))
     }, [rows, search])
 
     const finalRows = React.useMemo(() => {

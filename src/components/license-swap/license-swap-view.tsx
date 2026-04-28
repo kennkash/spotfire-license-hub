@@ -1,4 +1,19 @@
-"use client"
+{swapResult.issues.map((issue, idx) => (
+    <li key={`${issue.code}-${idx}`}>
+        <div>{issue.message}</div>
+
+        {issue.helpUrl && (
+            <a
+                href={issue.helpUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block font-medium underline underline-offset-2 hover:no-underline"
+            >
+                {issue.helpLabel ?? "View instructions"}
+            </a>
+        )}
+    </li>
+))}use client"
 
 import * as React from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"

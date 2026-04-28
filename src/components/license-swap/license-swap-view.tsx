@@ -1,19 +1,4 @@
-{swapResult.issues.map((issue, idx) => (
-    <li key={`${issue.code}-${idx}`}>
-        <div>{issue.message}</div>
-
-        {issue.helpUrl && (
-            <a
-                href={issue.helpUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-block font-medium underline underline-offset-2 hover:no-underline"
-            >
-                {issue.helpLabel ?? "View instructions"}
-            </a>
-        )}
-    </li>
-))}use client"
+"use client"
 
 import * as React from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
@@ -63,6 +48,8 @@ type SwapIssue = {
     message: string
     field?: string | null
     value?: string | null
+    helpUrl?: string | null
+    helpLabel?: string | null
 }
 
 type SwapResponse = {
@@ -118,7 +105,7 @@ function normalizeUser(row: any): LicenseUserRow {
         costCenterName: String(row.costCenterName ?? row.cost_center_name ?? "").trim(),
         departmentName: row.departmentName ?? row.department_name ?? row.dept_name ?? null,
         title: row.title ?? null,
-        status: row.status ?? row.statusName ?? row.status_name ?? null, 
+        status: row.status ?? row.statusName ?? row.status_name ?? null,
         currentLicense: normalizeLicense(row.currentLicense ?? row.current_license),
         licenseGroups: row.licenseGroups ?? row.license_groups ?? [],
         licenseGrantedAt: row.licenseGrantedAt ?? row.license_granted_at ?? null,
@@ -364,7 +351,7 @@ export default function LicenseSwapView() {
                 setExpandedUser(null)
                 setSelectedSourceUser(null)
                 setTargetSearch("")
-            
+
                 await Promise.all([refetchLicensedUsers(), refetchUsers()])
             }
         },
@@ -764,7 +751,20 @@ export default function LicenseSwapView() {
                                                                         {!!swapResult.issues?.length && (
                                                                             <ul className="mt-2 list-disc pl-5 space-y-1">
                                                                                 {swapResult.issues.map((issue, idx) => (
-                                                                                    <li key={`${issue.code}-${idx}`}>{issue.message}</li>
+                                                                                    <li key={`${issue.code}-${idx}`}>
+                                                                                        <div>{issue.message}</div>
+
+                                                                                        {issue.helpUrl && (
+                                                                                            <a
+                                                                                                href={issue.helpUrl}
+                                                                                                target="_blank"
+                                                                                                rel="noopener noreferrer"
+                                                                                                className="mt-1 inline-block font-medium underline underline-offset-2 hover:no-underline"
+                                                                                            >
+                                                                                                {issue.helpLabel ?? "View instructions"}
+                                                                                            </a>
+                                                                                        )}
+                                                                                    </li>
                                                                                 ))}
                                                                             </ul>
                                                                         )}

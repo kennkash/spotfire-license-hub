@@ -3,6 +3,69 @@
     <DialogTitle>Spotfire License Swap</DialogTitle>
   </DialogHeader>
 
+  <div className="space-y-4 text-sm text-muted-foreground">
+    <section>
+      <h4 className="mb-1 font-semibold text-foreground">Temporary swap support</h4>
+      <p>
+        Most Spotfire users currently still have Analyst access while the license reduction is pending.
+        To support the business during this transition, licensed users may swap their license assignment
+        with an unlicensed user in the same cost center.
+      </p>
+    </section>
+
+    <section>
+      <h4 className="mb-1 font-semibold text-foreground">Future License</h4>
+      <p>
+        The <strong className="text-foreground">Future License</strong> column shows the license the user
+        is planned to receive once the license reduction is completed.
+      </p>
+    </section>
+
+    <div className="flex gap-2 rounded-md bg-amber-50 px-3 py-2 text-amber-900">
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+      <p>
+        Future License may not always match the user&apos;s current Spotfire access.
+      </p>
+    </div>
+
+    <section>
+      <h4 className="mb-1 font-semibold text-foreground">Replacement users</h4>
+      <p>
+        Replacement users are limited to users who are actually unlicensed in Spotfire today.
+        When a swap is submitted, the selected user gives up their current Spotfire license groups
+        and the replacement user receives the appropriate access.
+      </p>
+    </section>
+
+    <section>
+      <h4 className="mb-1 font-semibold text-foreground">Analyst swaps</h4>
+      <p>
+        Analyst swaps may require the sql-join certificate before the swap can be completed.
+      </p>
+    </section>
+  </div>
+</DialogContent>
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<DialogContent className="sm:max-w-2xl">
+  <DialogHeader>
+    <DialogTitle>Spotfire License Swap</DialogTitle>
+  </DialogHeader>
+
   <div className="space-y-3 text-sm text-muted-foreground">
     <p>
       Most Spotfire users currently still have Analyst access while the license reduction is pending.

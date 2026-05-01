@@ -1,4 +1,44 @@
+<DialogContent className="sm:max-w-2xl">
+  <DialogHeader>
+    <DialogTitle>Spotfire License Swap</DialogTitle>
+  </DialogHeader>
 
+  <div className="space-y-3 text-sm text-muted-foreground">
+    <p>
+      Most Spotfire users currently still have Analyst access while the license reduction is pending.
+      To support the business during this transition, licensed users may swap their license assignment
+      with an unlicensed user in the same cost center.
+    </p>
+
+    <p>
+      The <strong className="text-foreground">Future License</strong> column shows the license the user
+      is planned to receive once the license reduction is completed.
+    </p>
+
+    <div className="flex gap-2 rounded-md bg-amber-50 px-3 py-2 text-amber-900">
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+      <p>
+        Future License may not always match the user&apos;s current Spotfire access.
+      </p>
+    </div>
+
+    <p>
+      Replacement users are limited to users who are actually unlicensed in Spotfire today.
+      When a swap is submitted, the selected user gives up their current Spotfire license groups
+      and the replacement user receives the appropriate access.
+    </p>
+
+    <p>
+      Analyst swaps may require the sql-join certificate before the swap can be completed.
+    </p>
+  </div>
+</DialogContent>
+
+
+
+
+
+  
 <DialogContent className="sm:max-w-2xl">
   <DialogHeader>
     <DialogTitle>Spotfire License Swap</DialogTitle>

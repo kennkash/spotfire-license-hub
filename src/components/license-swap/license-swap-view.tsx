@@ -1,3 +1,49 @@
+
+<DialogContent className="sm:max-w-2xl">
+  <DialogHeader>
+    <DialogTitle>Spotfire License Swap</DialogTitle>
+  </DialogHeader>
+
+  <div className="space-y-4 text-sm">
+    <p className="text-muted-foreground">
+      Most Spotfire users currently still have Analyst access while the license reduction is pending.
+      To support the business during this transition, licensed users may swap their license assignment
+      with an unlicensed user in the same cost center.
+    </p>
+
+    <div className="rounded-lg border bg-muted/40 p-4">
+      <p className="font-semibold text-foreground">Future License</p>
+      <p className="mt-1 text-muted-foreground">
+        The <strong>Future License</strong> column shows the license the user is planned to receive once
+        the license reduction is completed.
+      </p>
+    </div>
+
+    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900">
+      <p className="font-semibold">Important note</p>
+      <p className="mt-1">
+        This may not always match the user&apos;s current Spotfire access. Most users may still have
+        Analyst access today even if their future license is listed as Consumer.
+      </p>
+    </div>
+
+    <div className="rounded-lg border bg-muted/40 p-4">
+      <p className="font-semibold text-foreground">Replacement users</p>
+      <p className="mt-1 text-muted-foreground">
+        Replacement users are limited to users who are actually unlicensed in Spotfire today.
+      </p>
+    </div>
+
+    <div className="rounded-lg border bg-muted/40 p-4">
+      <p className="font-semibold text-foreground">What happens after submission?</p>
+      <p className="mt-1 text-muted-foreground">
+        The selected user is removed from their current Spotfire license groups, and the replacement
+        user receives the appropriate access.
+      </p>
+    </div>
+  </div>
+</DialogContent>
+
 <div className="space-y-2 text-sm text-muted-foreground mt-2 mb-4">
     <p>
         Use this page to move a planned Spotfire license from one licensed user to an actually unlicensed

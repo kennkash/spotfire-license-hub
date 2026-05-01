@@ -1,3 +1,60 @@
+<div className="space-y-2 text-sm text-muted-foreground mt-2 mb-4">
+    <p>
+        Use this page to move a planned Spotfire license from one licensed user to an actually unlicensed
+        replacement user in the same cost center.
+    </p>
+
+    <ul className="space-y-2 list-disc pl-5">
+        <li>
+            <strong>Future License</strong> shows the license the user is expected to have after the license reduction.
+        </li>
+        <li>
+            Most users currently still have Analyst access, so future license may not match today&apos;s Spotfire access.
+        </li>
+        <li>
+            Replacement users shown in the swap panel are filtered to users who are actually unlicensed in Spotfire today.
+        </li>
+        <li>
+            When the swap is submitted, the original user is removed from their current Spotfire license groups.
+        </li>
+    </ul>
+</div>
+
+
+
+<DialogContent>
+    <DialogHeader>
+        <DialogTitle>Spotfire License Swap</DialogTitle>
+    </DialogHeader>
+
+    <div className="space-y-3 text-sm text-foreground">
+        <p>
+            Most Spotfire users currently still have Analyst access while the license reduction is pending.
+            To support the business during this transition, licensed users may swap their license assignment
+            with an unlicensed user in the same cost center.
+        </p>
+
+        <p>
+            The <strong>Future License</strong> column shows the license the user is planned to receive once
+            the license reduction is completed. This may not always match the user&apos;s current Spotfire access.
+        </p>
+
+        <p>
+            Replacement users are limited to users who are actually unlicensed in Spotfire today. When a swap is
+            submitted, the selected user gives up their Spotfire license groups and the replacement user receives
+            the appropriate access.
+        </p>
+
+        <p>
+            Analyst swaps may require the sql-join certificate before the swap can be completed.
+        </p>
+    </div>
+</DialogContent>
+
+
+
+
+
 "use client"
 
 import * as React from "react"

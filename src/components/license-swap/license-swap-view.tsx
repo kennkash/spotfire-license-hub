@@ -483,13 +483,13 @@ export default function LicenseSwapView() {
                     </div>
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
-                        <Select value={costCenter} onValueChange={setCostCenter}>
-                            <SelectTrigger className="w-[280px]">
+                        <Select value={costCenter} onValueChange={setCostCenter} >
+                            <SelectTrigger className="w-[280px] hover:cursor-pointer">
                                 <SelectValue placeholder={costCentersLoading ? "Loading cost centers..." : "Select a cost center"} />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent >
                                 {costCenters.map((cc) => (
-                                    <SelectItem key={cc} value={cc}>
+                                    <SelectItem key={cc} value={cc} className="hover:cursor-pointer">
                                         {cc}
                                     </SelectItem>
                                 ))}
@@ -538,7 +538,7 @@ export default function LicenseSwapView() {
 
                     {costCenter && rows.length > 0 && (
                         <div className="mt-4 p-3 bg-background rounded border">
-                            <div className="font-medium mb-2">Current License Distribution</div>
+                            <div className="font-medium mb-2">Future License Distribution</div>
 
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
@@ -583,7 +583,7 @@ export default function LicenseSwapView() {
                                     <SortableHead label="Department" k="departmentName" />
                                     <SortableHead label="Title" k="title" />
                                     <SortableHead label="Employee Status" k="status" />
-                                    <SortableHead label="Current License" k="currentLicense" />
+                                    <SortableHead label="Future License" k="currentLicense" />
                                     <TableHead>Action</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -604,6 +604,7 @@ export default function LicenseSwapView() {
                                                 <UserColumns user={row} />
                                                 <TableCell>
                                                     <Button
+                                                        className="hover:cursor-pointer"
                                                         size="sm"
                                                         variant={isExpanded ? "secondary" : "default"}
                                                         onClick={() => openInlineSwap(row)}
@@ -646,14 +647,17 @@ export default function LicenseSwapView() {
                                                                         <div className="flex flex-wrap gap-2">
                                                                             <Button
                                                                                 variant="outline"
+                                                                                className="hover:cursor-pointer"
                                                                                 onClick={() => runSwap(true)}
                                                                                 disabled={!canSubmitSwap}
                                                                             >
                                                                                 Validate Swap
                                                                             </Button>
                                                                             <Button
+                                                                                className="hover:cursor-pointer"
                                                                                 onClick={() => runSwap(false)}
                                                                                 disabled={!canSubmitSwap}
+                                                                                // disabled
                                                                             >
                                                                                 Submit Swap
                                                                             </Button>
@@ -666,7 +670,7 @@ export default function LicenseSwapView() {
                                                                                 <div>
                                                                                     <div className="font-medium">Select replacement user</div>
                                                                                     <div className="text-sm text-muted-foreground">
-                                                                                        Users in {costCenter}, excluding {row.username}
+                                                                                        Unlicensed users in {costCenter}:
                                                                                     </div>
                                                                                 </div>
 
@@ -698,8 +702,8 @@ export default function LicenseSwapView() {
                                                                                                 onClick={() => setSelectedTargetUser(isSelected ? null : user)}
                                                                                                 className={
                                                                                                     isSelected
-                                                                                                        ? "block w-full text-left rounded border border-primary bg-accent/50 p-3"
-                                                                                                        : "block w-full text-left rounded border bg-background hover:bg-muted/50 p-3"
+                                                                                                        ? "block w-full text-left rounded border border-primary bg-accent/50 p-3 hover:cursor-pointer"
+                                                                                                        : "block w-full text-left rounded border bg-background hover:bg-muted/50 p-3 hover:cursor-pointer"
                                                                                                 }
                                                                                             >
                                                                                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
